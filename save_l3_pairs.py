@@ -27,7 +27,7 @@ class ARGS():
         self.mode                       = 'test' # mode here means train/val/test split
 
         self.num_sec_aud                = 1 # default
-        self.aud_sample_rate            = 24000 # default
+        self.aud_sample_rate            = 48000 # default
         self.aud_spec_type              = 2
         self.use_volume_jittering       = False # default
         self.use_audio_temp_jittering   = False # default
