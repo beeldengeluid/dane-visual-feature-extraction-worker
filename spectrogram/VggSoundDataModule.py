@@ -59,18 +59,6 @@ class VggSoundDataModule(pytorch_lightning.LightningDataModule):
         if transform is not None:
             self._TRANSFORM = transform
         else:
-            # self._TRANSFORM = torchvision.transforms.Compose([
-            #     pytorchvideo.transforms.ApplyTransformToKey(
-            #         key="video",
-            #         transform=torchvision.transforms.Compose([
-            #             pytorchvideo.transforms.UniformTemporalSubsample(self._CLIP_FRAMES),
-            #             pytorchvideo.transforms.Normalize((0.45, 0.45, 0.45), (0.225, 0.225, 0.225)),
-            #             pytorchvideo.transforms.RandomShortSideScale(min_size=256, max_size=320),
-            #             torchvision.transforms.RandomCrop(224),
-            #             torchvision.transforms.RandomHorizontalFlip(p=0.5),
-            #             ])
-            #     )
-            # ])
             self._TRANSFORM = None
 
     def get_loader(self, split, sample_mode):
@@ -113,11 +101,13 @@ if __name__ == '__main__':
 
     # dict_keys(['video', 'video_name', 'video_index', 'clip_index', 'aug_index', 'label', 'audio'])
     for i, batch in enumerate(train_loader_uniform):
-        # video, audio = batch['video'], batch['audio']
+
         if batch == None:
             continue
 
+        video, audio = batch['video'], batch['audio']
         video_index, clip_index = batch['video_index'], batch['clip_index']
-        # video_name, label = batch['video_name'], batch['label']
+        video_name, label = batch['video_name'], batch['label']
+        
         print(i, video_index, clip_index)
         video_index_list.append(video_index)
