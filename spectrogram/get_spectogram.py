@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def make_spectrogram(audio,
+def make_spectrogram(audio, # some waveform of shape 1 x n_samples
                      stft_length=2048,
                      stft_step=1024,
                      stft_pad_end=True,
