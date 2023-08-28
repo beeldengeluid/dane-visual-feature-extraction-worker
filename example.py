@@ -1,12 +1,14 @@
-
 import wave
 import numpy as np
 
 from pydub import AudioSegment
-from spectrogram.get_spectogram import get_spectrogram
+from spectrogram.get_spectogram import make_spectrogram
 
 # Convert MP4 to WAV
-audio = AudioSegment.from_file("data/train/class_1/test_video.mp4").resample(48000)
+audio = AudioSegment.from_file("data/train/class_1/test_video.mp4")
+import pdb
+pdb.set_trace()
+audio.set_frame_rate(48000)
 audio.export("output.wav", format="wav")
 
 # Read WAV file
@@ -14,6 +16,8 @@ wav_file = wave.open("output.wav", 'r')
 n_channels, sampwidth, framerate, n_frames = wav_file.getparams()[:4]
 data = wav_file.readframes(n_frames)
 raw_audio = np.frombuffer(data, dtype=np.int16)
+raw_audio = raw_audio.reshape((n_channels, n_frames), order='F')
+raw_audio = raw_audio.astype(np.float32) / 32768.0
 
 # Segment audio into 1 second chunks
 n_samples = raw_audio.shape[1]
@@ -27,5 +31,5 @@ for i in range(n_chunks):
 # Compute spectrogram for each chunk
 spectrograms = []
 for chunk in chunks:
-    spectrograms.append(get_spectrogram(chunk))
+    spectrograms.append(make_spectrogram(chunk))
 
