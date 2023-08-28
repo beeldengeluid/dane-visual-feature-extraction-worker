@@ -2,12 +2,10 @@ import wave
 import numpy as np
 
 from pydub import AudioSegment
-from spectrogram.get_spectogram import make_spectrogram
+from spectrogram.get_spectogram import raw_audio_to_spectrogram
 
 # Convert MP4 to WAV
 audio = AudioSegment.from_file("data/train/class_1/test_video.mp4")
-import pdb
-pdb.set_trace()
 audio.set_frame_rate(48000)
 audio.export("output.wav", format="wav")
 
@@ -31,5 +29,5 @@ for i in range(n_chunks):
 # Compute spectrogram for each chunk
 spectrograms = []
 for chunk in chunks:
-    spectrograms.append(make_spectrogram(chunk))
+    spectrograms.append(raw_audio_to_spectrogram(chunk))
 
