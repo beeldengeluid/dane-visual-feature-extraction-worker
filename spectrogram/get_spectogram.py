@@ -14,6 +14,7 @@ def make_spectrogram(audio, # some waveform of shape 1 x n_samples, tensorflow t
                      log_eps=1.,
                      log_scale=10000.):
     """Computes (mel) spectrograms for signals t."""
+    
     stfts = tf.signal.stft(audio,
                          frame_length=stft_length,
                          frame_step=stft_step,
