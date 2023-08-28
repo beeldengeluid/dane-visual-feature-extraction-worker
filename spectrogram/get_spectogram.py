@@ -31,7 +31,7 @@ def make_spectrogram(audio, # some waveform of shape 1 x n_samples, tensorflow t
                           linear_to_mel_weight_matrix.shape[-1:])
 
     if use_log:
-        spectrogram = tf.log(log_eps + log_scale * spectrogram)
+        spectrogram = tf.math.log(log_eps + log_scale * spectrogram)
     return spectrogram
 
 
