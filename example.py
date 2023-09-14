@@ -1,3 +1,4 @@
+from pathlib import Path
 import wave
 import numpy as np
 
@@ -31,3 +32,16 @@ spectrograms = []
 for chunk in chunks:
     spectrograms.append(raw_audio_to_spectrogram(chunk))
 
+# Save spectrogram to file
+spec_root = Path('./spectrogram_example_output')
+for i, spectrogram in enumerate(spectrograms):
+    spec_path = (spec_root / i).with_suffix('.npz')
+    out_dict = {'audio' : spectrogram}
+    np.savez(spec_path, out_dict)
+
+# Load specrogtam
+
+for i in len(spectrograms):
+    spec_path = (spec_root / i).with_suffix('.npz')
+    data = np.load(spec_path, allow_pickle=True)
+    audio = data['arr_0'].item()['audio']
