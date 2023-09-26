@@ -1,1 +1,7 @@
 dmvr_examples
+.venv
+/config-local.yml
+/data/*
+!/data/README.md
+__pycache__
+.coverage
