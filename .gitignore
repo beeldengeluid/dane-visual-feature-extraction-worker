@@ -5,3 +5,4 @@ dmvr_examples
 !/data/README.md
 __pycache__
 .coverage
+/models/*
