@@ -8,8 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def extract_features():
-
-    # consult https://github.com/beeldengeluid/dane-visual-feature-extraction-worker/blob/fae14f7d5ad3e506dbb61315cf8e5b6bb29fe357/feature_examples/feat_demo.py !!
+    # consult misc/feature_examples/feat_demo.py !!
 
     # Load spectograms + keyframes from file & preprocess
     dataset = VisXPData('../../data/visXP/example_data')
@@ -43,3 +42,7 @@ if __name__ == "__main__":
     )
 
     extract_features()
+
+    
+def example_function():
+    return 0 == 0

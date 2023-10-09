@@ -62,12 +62,15 @@ exclude = '''
     | \.git          # root of the project
     | build
     | dist
+    | \.venv
+    | misc
   )/
 )
 '''
 
 [tool.mypy]
 python_version = "3.10"
+exclude = "misc"
 
 [[tool.mypy.overrides]]
 module = [
