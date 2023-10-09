@@ -1,5 +1,5 @@
-from model_util import load_model_from_file
-from data_util import VisXPData
+from models import load_model_from_file
+from data_handling import VisXPData
 import logging
 import sys
 import torch
@@ -11,10 +11,10 @@ def extract_features():
     # consult misc/feature_examples/feat_demo.py !!
 
     # Load spectograms + keyframes from file & preprocess
-    dataset = VisXPData('../../data/visXP/example_data')
+    dataset = VisXPData("../../data/visXP/example_data")
 
     # Load model from file
-    model = load_model_from_file('models/checkpoint.tar')
+    model = load_model_from_file("models/checkpoint.tar")
 
     # Apply model to data
     logger.info(f"Going to extract features for {dataset.__len__()} items. ")
@@ -22,13 +22,15 @@ def extract_features():
     audio_feat, visual_feat = torch.tensor([]), torch.tensor([])
 
     for i, batch in enumerate(dataset.batches()):
-        frame, audio = batch['video'], batch['audio']
+        frame, audio = batch["video"], batch["audio"]
         with torch.no_grad():  # Forward pass to get the features
-            # audio_feat = model.audio_model(audio)
+            audio_feat = model.audio_model(audio)
             visual_feat = model.video_model(frame)
-        logger.info("Extracted features. "
-                    f"Audio shape: {audio_feat.shape}, "
-                    f"visual shape: {visual_feat.shape}")
+        logger.info(
+            "Extracted features. "
+            f"Audio shape: {audio_feat.shape}, "
+            f"visual shape: {visual_feat.shape}"
+        )
     # Binarize resulting feature matrix
     # Use GPU for processing
     # Store binarized feature matrix to file
@@ -38,11 +40,12 @@ if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
         stream=sys.stdout,  # configure a stream handler only for now (single handler)
-        format="%(asctime)s|%(levelname)s|%(process)d|%(module)s|%(funcName)s|%(lineno)d|%(message)s",
+        format="%(asctime)s|%(levelname)s|%(process)d|%(module)s"
+        "|%(funcName)s|%(lineno)d|%(message)s",
     )
 
     extract_features()
 
-    
+
 def example_function():
     return 0 == 0
