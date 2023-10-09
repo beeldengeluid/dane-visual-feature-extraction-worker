@@ -70,6 +70,7 @@ exclude = '''
 
 [tool.mypy]
 python_version = "3.10"
+exclude = "misc"
 
 [[tool.mypy.overrides]]
 module = [
