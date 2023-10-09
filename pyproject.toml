@@ -62,6 +62,8 @@ exclude = '''
     | \.git          # root of the project
     | build
     | dist
+    | \.venv
+    | misc
   )/
 )
 '''
