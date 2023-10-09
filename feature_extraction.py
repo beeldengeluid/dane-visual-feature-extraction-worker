@@ -1,6 +1,3 @@
-from torch import nn
-
-
 def extract_features():
     0 == 0
 
