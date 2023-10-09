@@ -1,2 +1,2 @@
 # dane-visual-feature-extraction-worker
-Uses the VizXP feature extraction to produce features/vector spaces
+Apply VisXP models trained for feature extraction from keyframes and audio spectograms, to produce feature vectors.
