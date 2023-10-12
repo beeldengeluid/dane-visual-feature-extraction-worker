@@ -7,11 +7,11 @@ import torch
 logger = logging.getLogger(__name__)
 
 
-def extract_features():
+def extract_features(data_path):
     # consult misc/feature_examples/feat_demo.py !!
 
     # Load spectograms + keyframes from file & preprocess
-    dataset = VisXPData("../../data/visXP/example_data")
+    dataset = VisXPData(data_path)
 
     # Load model from file
     model = load_model_from_file("models/checkpoint.tar")
@@ -44,7 +44,10 @@ if __name__ == "__main__":
         "|%(funcName)s|%(lineno)d|%(message)s",
     )
 
-    extract_features()
+    data_path = "/data/example_data"
+    # data_path = "data/proper_data"
+
+    extract_features(data_path)
 
 
 def example_function():
