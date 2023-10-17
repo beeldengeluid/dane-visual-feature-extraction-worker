@@ -35,11 +35,8 @@ class VisXPData(Dataset):
         frame = self.visual_transform(frame)
 
         data = np.load(self.spec_paths[index], allow_pickle=True)
-        audio = data["arr_0"].item()["audio"]
+        audio = data['arr_0'].item()['audio']
         audio = torch.tensor(audio)
-        # audio = torch.tensor(audio._numpy())
-        # Added ._numpy() for results of current worker 1 (proper_data, as opposed to
-        # current example_data)
         audio = self.audio_transform(audio)
 
         item_dict = dict()
