@@ -1,27 +1,22 @@
 import logging
 import os
 from pathlib import Path
-import requests
 import sys
 from time import time
-from typing import Optional
-from urllib.parse import urlparse
-
 from base_util import validate_config
 from dane import Document, Task, Result
 from dane.base_classes import base_worker
 from dane.config import cfg
-from models import CallbackResponse, DownloadResult, Provenance
+from models import CallbackResponse, Provenance
 from output_util import (
     transfer_output,
     delete_local_output,
-    delete_input_file,
     get_base_output_dir,
     get_source_id,
     get_download_dir,
     get_s3_base_url,
 )
-from pika.exceptions import ChannelClosedByBroker
+from pika.exceptions import ChannelClosedByBroker  # type: ignore
 from feature_extraction import extract_features
 
 
@@ -153,6 +148,7 @@ class VideoSegmentationWorker(base_worker):
             provenance.steps.append(proc_result.provenance)
 
         # step 3: process returned successfully, generate the output
+        input_file = "*"
         source_id = get_source_id(input_file)  # TODO: this worker does not necessarily work per source, so consider how to capture output group
         visxp_output_dir = get_base_output_dir(source_id)
 
