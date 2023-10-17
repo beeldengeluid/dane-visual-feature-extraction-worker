@@ -1,20 +1,13 @@
 import logging
 import os
 import shutil
-from typing import Dict, List
+from typing import List
 
 from dane.config import cfg
 from dane.s3_util import S3Store
-from models import OutputType
 
 
 logger = logging.getLogger(__name__)
-S3_OUTPUT_TYPES: List[OutputType] = [
-    OutputType.KEYFRAMES,
-    OutputType.SPECTOGRAMS,
-    OutputType.PROVENANCE,
-    OutputType.METADATA,
-]  # only upload this output to S3
 
 
 # returns the basename of the input file path without an extension
@@ -34,18 +27,6 @@ def get_base_output_dir(source_id: str = "") -> str:
 
 def get_download_dir():
     return os.path.join(cfg.FILE_SYSTEM.BASE_MOUNT, cfg.FILE_SYSTEM.INPUT_DIR)
-
-
-# for each OutputType a subdir is created inside the base output dir
-def generate_output_dirs(source_id: str) -> Dict[str, str]:
-    base_output_dir = get_base_output_dir(source_id)
-    output_dirs = {}
-    for output_type in OutputType:
-        output_dir = os.path.join(base_output_dir, output_type.value)
-        if not os.path.isdir(output_dir):
-            os.makedirs(output_dir)
-        output_dirs[output_type.value] = output_dir
-    return output_dirs
 
 
 def delete_local_output(source_id: str) -> bool:
@@ -70,9 +51,9 @@ def delete_local_output(source_id: str) -> bool:
     return True
 
 
-# TODO implement some more, now checks presence of provenance dir
+# TODO implement for this worker
 def _is_valid_visxp_output(output_dir: str) -> bool:
-    return os.path.exists(os.path.join(output_dir, OutputType.PROVENANCE.value))
+    return True  # os.path.exists(os.path.join(output_dir, OutputType.PROVENANCE.value))
 
 
 # TODO arrange an S3 bucket to store the VisXP results in
@@ -96,12 +77,12 @@ def transfer_output(source_id: str) -> bool:
         return False
 
     s3 = S3Store(cfg.OUTPUT.S3_ENDPOINT_URL)
-    for output_type in S3_OUTPUT_TYPES:
-        output_sub_dir = os.path.join(output_dir, output_type.value)
+
+    for output_sub_dir in ['']:
         success = s3.transfer_to_s3(
             cfg.OUTPUT.S3_BUCKET,
             os.path.join(
-                cfg.OUTPUT.S3_FOLDER_IN_BUCKET, source_id, output_type.value
+                cfg.OUTPUT.S3_FOLDER_IN_BUCKET, source_id
             ),  # assets/<program ID>__<carrier ID>/spectograms|keyframes|provenance
             obtain_files_to_upload_to_s3(output_sub_dir),
         )
