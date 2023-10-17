@@ -1,6 +1,9 @@
 import torch
 from torch import nn
 from yacs.config import CfgNode as CN
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class VisualNet(nn.Module):

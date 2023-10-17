@@ -11,7 +11,7 @@ def extract_features(data_path):
     # consult misc/feature_examples/feat_demo.py !!
 
     # Load spectograms + keyframes from file & preprocess
-    dataset = VisXPData(data_path)
+    dataset = VisXPData(data_path, model_config_file="models/model_config.yml")
 
     # Load model from file
     model = load_model_from_file(
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         "|%(funcName)s|%(lineno)d|%(message)s",
     )
 
-    data_path = "/data/example_data"
+    data_path = "data/visxp_prep"
     # data_path = "data/proper_data"
 
     extract_features(data_path)
