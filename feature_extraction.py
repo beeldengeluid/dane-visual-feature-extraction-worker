@@ -1,4 +1,4 @@
-from models import load_model_from_file
+from nn_models import load_model_from_file
 from data_handling import VisXPData
 import logging
 import sys
