@@ -13,7 +13,9 @@ jobs:
   test:
     uses: ./.github/workflows/_test.yml
 
-  build-and-push-ecr:
-    uses: ./.github/workflows/_build-and-push-ecr.yml
-    secrets: inherit
+  deploy:
+    uses: ./.github/workflows/_deploy.yml
+    permissions:
+      contents: read
+      packages: write
     needs: [test]
