@@ -1,10 +1,6 @@
 import torch
 from torch import nn
-
-MODEL_SETUP = {
-    'n_classes': 2,
-    'double_convolution': True
-}
+from yacs.config import CfgNode as CN
 
 
 class VisualNet(nn.Module):
@@ -204,9 +200,13 @@ class AVNet(nn.Module):
         return x
 
 
-def load_model_from_file(fn):
-    model = AVNet(num_classes=MODEL_SETUP['n_classes'], 
-                  double_convolution=MODEL_SETUP['double_convolution'])
-    checkpoint = torch.load(fn, map_location=torch.device('cpu'))
+def load_model_from_file(checkpoint_file, config_file):
+    with open(config_file, 'r') as f:
+        cfg = CN.load_cfg(f)
+    model = globals()[cfg.MODEL.TYPE](
+        num_classes=cfg.MODEL.N_CLASSES,
+        double_convolution=cfg.MODEL.DOUBLE_CONVOLUTION
+    )
+    checkpoint = torch.load(checkpoint_file, map_location=torch.device('cpu'))
     model.load_state_dict(checkpoint['state_dict'])
     return model

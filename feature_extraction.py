@@ -14,7 +14,10 @@ def extract_features(data_path):
     dataset = VisXPData(data_path)
 
     # Load model from file
-    model = load_model_from_file("models/checkpoint.tar")
+    model = load_model_from_file(
+        checkpoint_file="models/checkpoint.tar", 
+        config_file="models/model_config.yml",
+    )
 
     # Apply model to data
     logger.info(f"Going to extract features for {dataset.__len__()} items. ")
