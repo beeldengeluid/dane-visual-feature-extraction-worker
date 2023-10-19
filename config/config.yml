@@ -24,7 +24,12 @@ ELASTICSEARCH:
 FILE_SYSTEM:
     BASE_MOUNT: /data # data when running locally
     INPUT_DIR: input-files
-    OUTPUT_DIR: output-files/visxp_prep
+    OUTPUT_DIR: output-files/visxp_extract
+PATHS:
+    MODEL_LOCATION: /models/checkpoint.tar
+    MODEL_CONFIG: /models/model_config.yml
+VISXP_EXTRACT:
+    TEST_INPUT_PATH: /data
 INPUT:
     DELETE_ON_COMPLETION: True
 OUTPUT:

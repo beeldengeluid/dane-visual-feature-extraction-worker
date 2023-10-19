@@ -7,11 +7,11 @@ import torch
 logger = logging.getLogger(__name__)
 
 
-def extract_features(data_path):
+def extract_features(input_path: str):
     # consult misc/feature_examples/feat_demo.py !!
 
     # Load spectograms + keyframes from file & preprocess
-    dataset = VisXPData(data_path, model_config_file="models/model_config.yml")
+    dataset = VisXPData(input_path, model_config_file="models/model_config.yml")
 
     # Load model from file
     model = load_model_from_file(

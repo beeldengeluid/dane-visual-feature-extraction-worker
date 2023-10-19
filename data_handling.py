@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 class VisXPData(Dataset):
-    def __init__(self, datapath: Path, model_config_file: str, check_spec_dim=False):
+    def __init__(
+        self, datapath: str | Path, model_config_file: str, check_spec_dim=False
+    ):
         if type(datapath) is not Path:
             datapath = Path(datapath)
         self.spec_paths = list(datapath.glob("*/spectograms/*.npz"))
