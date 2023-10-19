@@ -32,11 +32,11 @@ Instead we put the output in:
 logger = logging.getLogger()
 
 
-class VideoSegmentationWorker(base_worker):
+class VisualFeatureExtractionWorker(base_worker):
     def __init__(self, config):
         logger.info(config)
 
-        self.UNIT_TESTING = os.getenv("DW_VISXP_UNIT_TESTING", False)
+        self.UNIT_TESTING = os.getenv("DW_VISXP_2_UNIT_TESTING", False)
 
         if not validate_config(config, not self.UNIT_TESTING):
             logger.error("Invalid config, quitting")
@@ -266,7 +266,7 @@ if __name__ == "__main__":
     else:
         logger.info("Starting the worker")
         # start the worker
-        w = VideoSegmentationWorker(cfg)
+        w = VisualFeatureExtractionWorker(cfg)
         try:
             w.run()
         except ChannelClosedByBroker:
