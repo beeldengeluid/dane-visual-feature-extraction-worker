@@ -19,6 +19,6 @@ RUN poetry config virtualenvs.create false && poetry install --only main --no-in
 COPY ./ /src
 
 # Write provenance info about software versions to file
-RUN echo "dane-visual-feature-extraction-worker;https://github.com/beeldengeluid/dane-visual-feature-extraction-worker/commit/$(git rev-parse HEAD)" >> /software_provenance.txt 
+RUN echo "dane-visual-feature-extraction-worker;https://github.com/beeldengeluid/dane-visual-feature-extraction-worker/commit/$(git rev-parse HEAD)" >> /software_provenance.txt
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
