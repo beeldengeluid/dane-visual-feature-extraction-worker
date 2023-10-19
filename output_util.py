@@ -78,7 +78,7 @@ def transfer_output(source_id: str) -> bool:
 
     s3 = S3Store(cfg.OUTPUT.S3_ENDPOINT_URL)
 
-    for output_sub_dir in ['']:
+    for output_sub_dir in [""]:
         success = s3.transfer_to_s3(
             cfg.OUTPUT.S3_BUCKET,
             os.path.join(

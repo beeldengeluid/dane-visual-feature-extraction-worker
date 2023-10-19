@@ -62,7 +62,9 @@ class VideoSegmentationWorker(base_worker):
             sys.exit()
 
         # check if the file system is setup properly
-        if not self.validate_data_dirs(get_download_dir(), get_base_output_dir()):  # TODO: is this relevant for worker 2?
+        if not self.validate_data_dirs(
+            get_download_dir(), get_base_output_dir()
+        ):  # TODO: is this relevant for worker 2?
             logger.info("ERROR: data dirs not configured properly")
             if not self.UNIT_TESTING:
                 sys.exit()
@@ -71,7 +73,9 @@ class VideoSegmentationWorker(base_worker):
         # listen to the same queue
         self.__queue_name = "VISXP_EXTRACT"  # this is the queue that receives the work and NOT the reply queue
         # self.DANE_DOWNLOAD_TASK_KEY = "DOWNLOAD"
-        self.__binding_key = "#.VISXP_EXTRACT"  # ['Video.VISXP_PREP', 'Sound.VISXP_PREP']
+        self.__binding_key = (
+            "#.VISXP_EXTRACT"  # ['Video.VISXP_PREP', 'Sound.VISXP_PREP']
+        )
         self.__depends_on = self.DANE_DEPENDENCIES  # TODO make this part of DANE lib?
 
         if not self.UNIT_TESTING:
@@ -88,7 +92,9 @@ class VideoSegmentationWorker(base_worker):
 
     """----------------------------------INIT VALIDATION FUNCTIONS ---------------------------------"""
 
-    def validate_data_dirs(self, input_dir: str, visxp_output_dir: str) -> bool:  # TODO: add model dir
+    def validate_data_dirs(
+        self, input_dir: str, visxp_output_dir: str
+    ) -> bool:  # TODO: add model dir
         i_dir = Path(input_dir)
         o_dir = Path(visxp_output_dir)
 
@@ -133,8 +139,11 @@ class VideoSegmentationWorker(base_worker):
             output_data={},
         )
 
+        # TODO make sure to download the output from S3
+        input_path = "TODO"
+
         # step 1: apply model to extract features
-        proc_result = extract_features()  # Add proper parameters
+        proc_result = extract_features(input_path)  # Add proper parameters
 
         # step 2: raise exception on failure
         if proc_result.state != 200:
@@ -149,7 +158,9 @@ class VideoSegmentationWorker(base_worker):
 
         # step 3: process returned successfully, generate the output
         input_file = "*"
-        source_id = get_source_id(input_file)  # TODO: this worker does not necessarily work per source, so consider how to capture output group
+        source_id = get_source_id(
+            input_file
+        )  # TODO: this worker does not necessarily work per source, so consider how to capture output group
         visxp_output_dir = get_base_output_dir(source_id)
 
         # step 4: transfer the output to S3 (if configured so)
@@ -240,11 +251,9 @@ if __name__ == "__main__":
 
     # see if the test file must be run
     if args.run_test_file != "n":
-        logger.info("Running feature extraction with VISXP_EXTRACT.TEST_FILES ")
-        if cfg.VISXP_EXTRACT and cfg.VISXP_EXTRACT.TEST_FILES:
-            visxp_fe = extract_features(
-                #  cfg.VISXP_EXTRACT.TEST_FILES
-            )
+        logger.info("Running feature extraction with VISXP_EXTRACT.TEST_INPUT_PATH ")
+        if cfg.VISXP_EXTRACT and cfg.VISXP_EXTRACT.TEST_INPUT_PATH:
+            visxp_fe = extract_features(cfg.VISXP_EXTRACT.TEST_INPUT_PATH)
             if visxp_fe.provenance:
                 logger.info(
                     f"Successfully processed example files in {visxp_fe.provenance.processing_time_ms}ms"
