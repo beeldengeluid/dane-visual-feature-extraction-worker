@@ -4,6 +4,7 @@ services:
     image: dane-visual-feature-extraction-worker:latest
     volumes:
       - ./data:/data
+      - ./model:/model
       - ./config:/root/.DANE
     container_name: visxp_worker_2
     command: --run-test-file  # NOTE: comment this line to spin up th worker
