@@ -1,0 +1,15 @@
+/data
+/misc
+/model
+/config
+/config.yml
+/config-local.yml
+/tests
+.venv
+.flake8
+.git
+.github
+.mypy_cache
+.pytest_cache
+.coverage
+__pycache__

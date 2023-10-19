@@ -236,6 +236,7 @@ class AVNet(nn.Module):
 
 
 def load_model_from_file(checkpoint_file, config_file):
+    logger.info(f"Loading {checkpoint_file} and using model config: {config_file}")
     with open(config_file, "r") as f:
         cfg = CN.load_cfg(f)
     model = globals()[cfg.MODEL.TYPE](
