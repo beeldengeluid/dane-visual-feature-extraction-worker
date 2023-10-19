@@ -15,7 +15,7 @@ def extract_features(data_path):
 
     # Load model from file
     model = load_model_from_file(
-        checkpoint_file="models/checkpoint.tar", 
+        checkpoint_file="models/checkpoint.tar",
         config_file="models/model_config.yml",
     )
 
