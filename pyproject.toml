@@ -11,18 +11,13 @@ yacs = "^0.1.8"
 dane = "^0.3.7"
 torch = "2.0.0"         # 2.0.1 yields installation issues
 torchvision = "0.15.1"  # 0.15.2 yields installation issues (https://github.com/python-poetry/poetry/issues/4231)
-torchaudio = "2.0.0"    # torchaudio 2.0.0 is yanked. Reason for being yanked: Contains an incorrect torch dependency. But torchaudio 2.0.2 depends on torch 2.0.1
-#torch = { version = "=2.0.1+cpu", source = "pytorch" } 
-#torchvision = "^0.15.2"
-#torchaudio="^2.0.2"
-tensorflow = "^2.13.0"
-tensorflow-io-gcs-filesystem = { version = "*", python = ">=3.10,<3.12" }
+# torch = { version = "=2.0.1+cpu", source = "pytorch" } 
+# torchvision = "0.15.2"  
 
-
-#[[tool.poetry.source]] # To be able to install the newest version of Pytorch with poetry, use wheel 
-#name = "pytorch"
-#url = "https://download.pytorch.org/whl/cpu/"
-#priority = "supplemental"
+# [[tool.poetry.source]] # To be able to install the newest version of Pytorch with poetry, use wheel 
+# name = "pytorch"
+# url = "https://download.pytorch.org/whl/cpu/"
+# priority = "supplemental"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.2.0"
