@@ -1,8 +1,9 @@
 from nn_models import load_model_from_file
 from data_handling import VisXPData
 import logging
-import sys
 import torch
+import sys
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -24,19 +25,30 @@ def extract_features(data_path):
 
     audio_feat, visual_feat = torch.tensor([]), torch.tensor([])
 
-    for i, batch in enumerate(dataset.batches()):
-        frame, audio = batch["video"], batch["audio"]
+    for i, batch in enumerate(dataset.batches(batch_size=2)):
+        frames, spectograms = batch["video"], batch["audio"]
+        sourceIDs, timestamps = batch["videoname"],batch["timestamp"]
         with torch.no_grad():  # Forward pass to get the features
-            audio_feat = model.audio_model(audio)
-            visual_feat = model.video_model(frame)
+            audio_feat = model.audio_model(spectograms)
+            visual_feat = model.video_model(frames)
         logger.info(
             "Extracted features. "
             f"Audio shape: {audio_feat.shape}, "
             f"visual shape: {visual_feat.shape}"
         )
+        # TODO: prepend matrix with shot boundaries and timestamp, and then save to file per sourceID
+
     # Binarize resulting feature matrix
     # Use GPU for processing
     # Store binarized feature matrix to file
+
+
+def export_features(audio_feat: torch.Tensor, visual_feat: torch.Tensor, destination: str):
+    with open(os.path.join(destination, 'audio_features'), 'wb') as f:
+        torch.save(obj=audio_feat, f=f)
+
+
+
 
 
 if __name__ == "__main__":

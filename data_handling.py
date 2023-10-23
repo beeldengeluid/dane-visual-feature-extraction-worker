@@ -64,12 +64,9 @@ class VisXPData(Dataset):
         return len(self.spec_paths)
 
     def __getitem__(self, index):
-        frame = self.__get_keyframe__(index=index)
-        audio = self.__get_spec__(index=index)
-
         item_dict = dict()
-        item_dict["video"] = frame
-        item_dict["audio"] = audio
+        item_dict["video"] = self.__get_keyframe__(index=index)
+        item_dict["audio"] = self.__get_spec__(index=index)
         item_dict["videoname"] = self.frame_paths[index].parts[0]
         item_dict["timestamp"] = self.frame_paths[index].parts[-1].split(".")[0]
 
@@ -88,5 +85,5 @@ class VisXPData(Dataset):
         frame = self.visual_transform(frame)
         return frame
 
-    def batches(self):
-        return DataLoader(self)
+    def batches(self, batch_size: int = 1):
+        return DataLoader(self, batch_size=batch_size)
