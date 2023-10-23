@@ -143,7 +143,12 @@ class VisualFeatureExtractionWorker(base_worker):
         input_path = "TODO"
 
         # step 1: apply model to extract features
-        proc_result = extract_features(input_path)  # Add proper parameters
+        proc_result = extract_features(
+            input_path,
+            source_id,
+            model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
+            model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
+            )  # Add proper parameters
 
         # step 2: raise exception on failure
         if proc_result.state != 200:
