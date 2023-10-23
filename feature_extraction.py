@@ -1,23 +1,28 @@
-from nn_models import load_model_from_file
-from data_handling import VisXPData
 import logging
-import torch
+from nn_models import load_model_from_file
 import sys
+import torch
 import os
+
+from dane.config import cfg
+from data_handling import VisXPData
+
 
 logger = logging.getLogger(__name__)
 
 
-def extract_features(data_path):
+def extract_features(input_path: str):
     # consult misc/feature_examples/feat_demo.py !!
 
     # Load spectograms + keyframes from file & preprocess
-    dataset = VisXPData(data_path, model_config_file="models/model_config.yml")
+    dataset = VisXPData(
+        input_path, model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH
+    )
 
     # Load model from file
     model = load_model_from_file(
-        checkpoint_file="models/checkpoint.tar",
-        config_file="models/model_config.yml",
+        checkpoint_file=cfg.VISXP_EXTRACT.MODEL_PATH,
+        config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
     )
 
     # Apply model to data
