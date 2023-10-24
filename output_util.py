@@ -1,18 +1,19 @@
 import logging
 import os
+import shutil
 from typing import List
 
 from dane.config import cfg
-import torch
+from dane.s3_util import S3Store
+
 
 logger = logging.getLogger(__name__)
 
 
-# returns the basename of the input path
-# throughout processing this is then used as a unique ID
-# to keep track of the input/output
-def get_source_id(input_path: str) -> str:
-    fn = os.path.basename(input_path)
+# returns the basename of the input file path without an extension
+# throughout processing this is then used as a unique ID to keep track of the input/output
+def get_source_id(input_file_path: str) -> str:
+    fn = os.path.basename(input_file_path)
     return fn[0 : fn.rfind(".")] if "." in fn else fn
 
 
@@ -23,18 +24,73 @@ def get_base_output_dir(source_id: str = "") -> str:
         path_elements.append(source_id)
     return os.path.join(*path_elements)
 
-def export_features(features: torch.Tensor, destination: str):
-    with open(os.path.join(destination), 'wb') as f:
-        torch.save(obj=features, f=f)
+
+def get_download_dir():
+    return os.path.join(cfg.FILE_SYSTEM.BASE_MOUNT, cfg.FILE_SYSTEM.INPUT_DIR)
+
 
 def delete_local_output(source_id: str) -> bool:
-    # TODO: implement
+    output_dir = get_base_output_dir(source_id)
+    logger.info(f"Deleting output folder: {output_dir}")
+    if output_dir == os.sep or output_dir == ".":
+        logger.warning(f"Rejected deletion of: {output_dir}")
+        return False
+
+    if not _is_valid_visxp_output(output_dir):
+        logger.warning(
+            f"Tried to delete a dir that did not contain VisXP output: {output_dir}"
+        )
+        return False
+
+    try:
+        shutil.rmtree(output_dir)
+        logger.info(f"Cleaned up folder {output_dir}")
+    except Exception:
+        logger.exception(f"Failed to delete output dir {output_dir}")
+        return False
     return True
 
 
-def transfer_output(output_dir: str) -> bool:
-    logger.info(f"Transferring {output_dir} to S3")
-    # TODO: implement
+# TODO implement for this worker
+def _is_valid_visxp_output(output_dir: str) -> bool:
+    return True  # os.path.exists(os.path.join(output_dir, OutputType.PROVENANCE.value))
+
+
+# TODO arrange an S3 bucket to store the VisXP results in
+# TODO finish implementation to whatever is needed for VisXP files
+def transfer_output(source_id: str) -> bool:
+    output_dir = get_base_output_dir(source_id)
+    logger.info(f"Transferring {output_dir} to S3 (asset={source_id})")
+    if any(
+        [
+            not x
+            for x in [
+                cfg.OUTPUT.S3_ENDPOINT_URL,
+                cfg.OUTPUT.S3_BUCKET,
+                cfg.OUTPUT.S3_FOLDER_IN_BUCKET,
+            ]
+        ]
+    ):
+        logger.warning(
+            "TRANSFER_ON_COMPLETION configured without all the necessary S3 settings"
+        )
+        return False
+
+    s3 = S3Store(cfg.OUTPUT.S3_ENDPOINT_URL)
+
+    for output_sub_dir in [""]:
+        success = s3.transfer_to_s3(
+            cfg.OUTPUT.S3_BUCKET,
+            os.path.join(
+                cfg.OUTPUT.S3_FOLDER_IN_BUCKET, source_id
+            ),  # assets/<program ID>__<carrier ID>/spectograms|keyframes|provenance
+            obtain_files_to_upload_to_s3(output_sub_dir),
+        )
+        if not success:
+            logger.error(
+                f"Failed to upload output folder: {output_sub_dir}, aborting rest of upload"
+            )
+            return False
     return True
 
 
