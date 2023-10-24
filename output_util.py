@@ -23,9 +23,11 @@ def get_base_output_dir(source_id: str = "") -> str:
         path_elements.append(source_id)
     return os.path.join(*path_elements)
 
+
 def export_features(features: torch.Tensor, destination: str):
     with open(os.path.join(destination), 'wb') as f:
         torch.save(obj=features, f=f)
+
 
 def delete_local_output(source_id: str) -> bool:
     # TODO: implement
@@ -48,6 +50,11 @@ def obtain_files_to_upload_to_s3(output_dir: str) -> List[str]:
         for f in files:
             s3_file_list.append(os.path.join(root, f))
     return s3_file_list
+
+
+# TODO: implement or replace function calls
+def get_download_dir():
+    return ''
 
 
 # NOTE: untested
