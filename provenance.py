@@ -15,8 +15,10 @@ PROVENANCE_FILE = "provenance.json"
 
 # Generates a the main Provenance object, which will embed/include the provided provenance_chain
 def generate_full_provenance_chain(
-    start_time: float, input_path: str, provenance_chain: List[Provenance],
-    output_path: str
+    start_time: float,
+    input_path: str,
+    provenance_chain: List[Provenance],
+    output_path: str,
 ) -> Provenance:
     provenance = Provenance(
         activity_name="VisXP feature extraction",
@@ -33,7 +35,7 @@ def generate_full_provenance_chain(
         output_data=output_path,
     )
 
-    prov_file = os.path.splitext(output_path)[0] + '.provenance'
+    prov_file = os.path.splitext(output_path)[0] + ".provenance"
     with open(prov_file, "w+") as f:
         f.write(str(provenance.to_json()))
         logger.info(f"Wrote provenance info to file: {prov_file}")

@@ -70,8 +70,9 @@ class VisXPData(Dataset):
         item_dict["audio"] = self.__get_spec__(index=index)
         timestamp = int(self.frame_paths[index].parts[-1].split(".")[0])
         item_dict["timestamp"] = timestamp
-        item_dict['shot_boundaries'] = self.list_of_shots.find_shot_for_timestamp(
-            timestamp=timestamp)
+        item_dict["shot_boundaries"] = self.list_of_shots.find_shot_for_timestamp(
+            timestamp=timestamp
+        )
         return item_dict
 
     def __get_spec__(self, index, transform=True):
@@ -92,8 +93,9 @@ class VisXPData(Dataset):
 
     class ListOfShots:
         def __init__(self, datapath: Path):
-            with open(datapath / 'metadata' / 'shot_boundaries_timestamps_ms.txt',
-                      'r') as f:
+            with open(
+                datapath / "metadata" / "shot_boundaries_timestamps_ms.txt", "r"
+            ) as f:
                 self.list_of_tuples = np.array(eval(f.read()))
 
         def find_shot_for_timestamp(self, timestamp):

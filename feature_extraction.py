@@ -15,19 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 def extract_features(
-        input_path: str,
-        model_path: str,
-        model_config_file: str,
-        output_path: str) -> VisXPFeatureExtractionOutput:
+    input_path: str, model_path: str, model_config_file: str, output_path: str
+) -> VisXPFeatureExtractionOutput:
     start_time = time()
     # Step 0: this is the "processing ID" if you will
     source_id = get_source_id(input_path)
     logger.info(f"Extracting features for: {source_id}.")
 
     # Load spectograms + keyframes from file & preprocess
-    dataset = VisXPData(
-        Path(input_path), model_config_file=model_config_file
-    )
+    dataset = VisXPData(Path(input_path), model_config_file=model_config_file)
 
     # Load model from file
     model = load_model_from_file(
@@ -46,19 +42,20 @@ def extract_features(
             audio_feat = model.audio_model(spectograms)
             visual_feat = model.video_model(frames)
         batch_result = torch.concat(
-            (timestamps.unsqueeze(1), shots, audio_feat, visual_feat),
-            1)
+            (timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1
+        )
         result = torch.concat((result, batch_result), 0)
-    destination = os.path.join(output_path, f'{source_id}.pt')
+    destination = os.path.join(output_path, f"{source_id}.pt")
     export_features(result, destination=destination)
     provenance = generate_full_provenance_chain(
         start_time=start_time,
         input_path=input_path,
         provenance_chain=[],
-        output_path=destination
+        output_path=destination,
     )
     return VisXPFeatureExtractionOutput(
-        200, "Succesfully extracted features", provenance)
+        200, "Succesfully extracted features", provenance
+    )
 
     # Binarize resulting feature matrix
     # Use GPU for processing
@@ -73,10 +70,12 @@ if __name__ == "__main__":
         "|%(funcName)s|%(lineno)d|%(message)s",
     )
 
-    extract_features(input_path="data/visxp_prep/ZQWO_DYnq5Q_000000",
-                     output_path="data/visxp_features",
-                     model_config_file='models/model_config.yml',
-                     model_path='models/checkpoint.tar')
+    extract_features(
+        input_path="data/visxp_prep/ZQWO_DYnq5Q_000000",
+        output_path="data/visxp_features",
+        model_config_file="models/model_config.yml",
+        model_path="models/checkpoint.tar",
+    )
 
 
 def example_function():

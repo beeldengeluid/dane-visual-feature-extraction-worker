@@ -100,7 +100,8 @@ class VisualFeatureExtractionWorker(base_worker):
 
         if not os.path.exists(i_dir.parent.absolute()):
             logger.info(
-                f"{i_dir.parent.absolute()} does not exist. Make sure BASE_MOUNT_DIR exists before retrying")
+                f"{i_dir.parent.absolute()} does not exist. Make sure BASE_MOUNT_DIR exists before retrying"
+            )
             return False
 
         # make sure the input and output dirs are there
@@ -259,7 +260,8 @@ if __name__ == "__main__":
                 input_path=cfg.VISXP_EXTRACT.TEST_INPUT_PATH,
                 model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
                 model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
-                output_path=cfg.FILESYSTEM.OUTPUT_DIR,)
+                output_path=cfg.FILESYSTEM.OUTPUT_DIR,
+            )
             if visxp_fe.provenance:
                 logger.info(
                     "Successfully processed example files "

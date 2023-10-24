@@ -25,7 +25,7 @@ def get_base_output_dir(source_id: str = "") -> str:
 
 
 def export_features(features: torch.Tensor, destination: str):
-    with open(os.path.join(destination), 'wb') as f:
+    with open(os.path.join(destination), "wb") as f:
         torch.save(obj=features, f=f)
 
 
@@ -54,7 +54,7 @@ def obtain_files_to_upload_to_s3(output_dir: str) -> List[str]:
 
 # TODO: implement or replace function calls
 def get_download_dir():
-    return ''
+    return ""
 
 
 # NOTE: untested
