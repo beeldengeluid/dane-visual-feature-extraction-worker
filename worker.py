@@ -259,7 +259,7 @@ if __name__ == "__main__":
                 input_path=cfg.VISXP_EXTRACT.TEST_INPUT_PATH,
                 model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
                 model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
-                output_path=output_path,)
+                output_path=cfg.FILESYSTEM.OUTPUT_DIR,)
             if visxp_fe.provenance:
                 logger.info(
                     "Successfully processed example files "
