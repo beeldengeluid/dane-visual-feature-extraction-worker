@@ -32,7 +32,7 @@ def generate_full_provenance_chain(
         steps=provenance_chain,
         software_version=obtain_software_versions([DANE_WORKER_ID]),
         input_data={"input_path": input_path},
-        output_data=output_path,
+        output_data={"output_path": output_path},
     )
 
     prov_file = os.path.splitext(output_path)[0] + ".provenance"
