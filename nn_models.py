@@ -235,7 +235,7 @@ class AVNet(nn.Module):
         return x
 
 
-def load_model_from_file(checkpoint_file, config_file):
+def load_model_from_file(checkpoint_file, config_file, device):
     logger.info(f"Loading {checkpoint_file} and using model config: {config_file}")
     with open(config_file, "r") as f:
         cfg = CN.load_cfg(f)
@@ -244,4 +244,4 @@ def load_model_from_file(checkpoint_file, config_file):
     )
     checkpoint = torch.load(checkpoint_file, map_location=torch.device("cpu"))
     model.load_state_dict(checkpoint["state_dict"])
-    return model
+    return model.to(device)
