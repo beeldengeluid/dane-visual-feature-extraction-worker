@@ -100,9 +100,7 @@ class VisualFeatureExtractionWorker(base_worker):
 
         if not os.path.exists(i_dir.parent.absolute()):
             logger.info(
-                "{} does not exist. Make sure BASE_MOUNT_DIR exists before retrying".format(
-                    i_dir.parent.absolute()
-                )
+                f"{i_dir.parent.absolute()} does not exist. Make sure BASE_MOUNT_DIR exists before retrying"
             )
             return False
 
@@ -141,9 +139,15 @@ class VisualFeatureExtractionWorker(base_worker):
 
         # TODO make sure to download the output from S3
         input_path = "TODO"
+        output_path = "TODO"
 
         # step 1: apply model to extract features
-        proc_result = extract_features(input_path)  # Add proper parameters
+        proc_result = extract_features(
+            input_path,
+            model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
+            model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
+            output_path=output_path,
+        )
 
         # step 2: raise exception on failure
         if proc_result.state != 200:
@@ -161,7 +165,6 @@ class VisualFeatureExtractionWorker(base_worker):
         source_id = get_source_id(
             input_file
         )  # TODO: this worker does not necessarily work per source, so consider how to capture output group
-        visxp_output_dir = get_base_output_dir(source_id)
 
         # step 4: transfer the output to S3 (if configured so)
         transfer_success = True
@@ -184,7 +187,7 @@ class VisualFeatureExtractionWorker(base_worker):
         if (
             not delete_success
         ):  # NOTE: just a warning for now, but one to keep an EYE out for
-            logger.warning(f"Could not delete output files: {visxp_output_dir}")
+            logger.warning(f"Could not delete output files: {output_path}")
 
         # step 6: save the results back to the DANE index
         self.save_to_dane_index(
@@ -253,10 +256,16 @@ if __name__ == "__main__":
     if args.run_test_file != "n":
         logger.info("Running feature extraction with VISXP_EXTRACT.TEST_INPUT_PATH ")
         if cfg.VISXP_EXTRACT and cfg.VISXP_EXTRACT.TEST_INPUT_PATH:
-            visxp_fe = extract_features(cfg.VISXP_EXTRACT.TEST_INPUT_PATH)
+            visxp_fe = extract_features(
+                input_path=cfg.VISXP_EXTRACT.TEST_INPUT_PATH,
+                model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
+                model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
+                output_path=cfg.FILESYSTEM.OUTPUT_DIR,
+            )
             if visxp_fe.provenance:
                 logger.info(
-                    f"Successfully processed example files in {visxp_fe.provenance.processing_time_ms}ms"
+                    "Successfully processed example files "
+                    f"in {visxp_fe.provenance.processing_time_ms}ms"
                 )
             else:
                 logger.info(f"Error: {visxp_fe.state}: {visxp_fe.message}")
