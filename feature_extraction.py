@@ -18,26 +18,34 @@ def extract_features(
     input_path: str, model_path: str, model_config_file: str, output_path: str
 ) -> VisXPFeatureExtractionOutput:
     start_time = time()
-    # Step 0: this is the "processing ID" if you will
+
+    # Step 1: set up GPU processing if available
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    logger.info(f"Device is: {device}")
+
+    # Step 1: this is the "processing ID" if you will
     source_id = get_source_id(input_path)
     logger.info(f"Extracting features for: {source_id}.")
 
-    # Load spectograms + keyframes from file & preprocess
-    dataset = VisXPData(Path(input_path), model_config_file=model_config_file)
+    # Step 2: Load spectograms + keyframes from file & preprocess
+    dataset = VisXPData(
+        Path(input_path), model_config_file=model_config_file, device=device)
 
-    # Load model from file
+    # Step 3: Load model from file
     model = load_model_from_file(
         checkpoint_file=model_path,
         config_file=model_config_file,
+        device=device,
     )
 
-    # Apply model to data
+    # Step 4: Apply model to data
     logger.info(f"Going to extract features for {dataset.__len__()} items. ")
 
-    result = torch.Tensor([])
+    result = torch.Tensor([]).to(device)
     for i, batch in enumerate(dataset.batches(batch_size=256)):
         frames, spectograms = batch["video"], batch["audio"]
-        timestamps, shots = batch["timestamp"], batch["shot_boundaries"]
+        timestamps = batch["timestamp"].to(device)
+        shots = batch["shot_boundaries"].to(device)
         with torch.no_grad():  # Forward pass to get the features
             audio_feat = model.audio_model(spectograms)
             visual_feat = model.video_model(frames)
