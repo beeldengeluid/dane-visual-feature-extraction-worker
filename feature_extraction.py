@@ -18,17 +18,12 @@ def apply_model(batch, model, device):
     frames, spectograms = batch["video"], batch["audio"]
     timestamps = batch["timestamp"].to(device)
     shots = batch["shot_boundaries"].to(device)
-    logger.info(f'Frame batch size: {frames.shape}')
-    logger.info(f'Audio batch size: {spectograms.shape}')
-    logger.info(f'Timestamp batch size: {timestamps.shape}')
-    logger.info(f'Shots batch size: {shots.shape}')
     with torch.no_grad():  # Forward pass to get the features
         audio_feat = model.audio_model(spectograms)
         visual_feat = model.video_model(frames)
     result = torch.concat(
         (timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1
     )
-    logger.info(f'Result size: {result.shape}')
     return result
 
 
