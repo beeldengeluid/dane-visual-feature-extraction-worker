@@ -1,5 +1,7 @@
 import argparse
 from pathlib import Path
+
+import numpy as np
 from L3_data_module import L3_data_module
 from torch.utils.data import DataLoader
 
@@ -10,18 +12,18 @@ import os
 
 parser = argparse.ArgumentParser(description='L3')
 
-parser.add_argument('--train_path', type=str, default='/local/tlong/data/vggsound_l3/train/', metavar='N',
+parser.add_argument('--train_path', type=str, default='../data/train/', metavar='N',
                     help='path to train data (default: /local/tlong/data/kineticssound_l3/train/)')
-parser.add_argument('--test_path', type=str, default='/local/tlong/data/vggsound_l3/val/', metavar='N',
+parser.add_argument('--test_path', type=str, default='../frame_and_spectogram_examples', metavar='N',
                     help='path to test data (default: /local/tlong/data/kineticssound_l3/test/)')
 parser.add_argument('--num_classes', type=int, default=339)
 parser.add_argument('--double_convolution', type=bool, default=True, metavar='N',
                     help='double convolution (default: True)')
-parser.add_argument('--ckpt_path', type=str, default='./L3_kinetics_double_conv_rebuttal/checkpoints/checkpoint_7.0.pth.tar')
+parser.add_argument('--ckpt_path', type=str, default='../../model/checkpoint_7.0.pth.tar')
 
 parser.add_argument('--batch_size', type=int, default=512, metavar='N',
                     help='input batch size for training (default: 256)')
-parser.add_argument('--num_workers', type=int, default=80, metavar='N',
+parser.add_argument('--num_workers', type=int, default=0, metavar='N',
                     help='number of workers (default: 80)')
 
 args = parser.parse_args()
@@ -30,7 +32,11 @@ args.test_path = Path(args.test_path)
 
 def load_checkpoint(args, model):
 
-    checkpoint = torch.load(args.ckpt_path)
+    if torch.cuda.is_available():
+        checkpoint = torch.load(args.ckpt_path)
+    else:
+        checkpoint = torch.load(args.ckpt_path,  map_location=torch.device('cpu'))
+
     model.load_state_dict(checkpoint['state_dict'])
 
 class FeatureExtractor(nn.Module):
@@ -59,6 +65,8 @@ if __name__ == '__main__':
     model.eval()
     with torch.no_grad():
 
+        audio_feat_list, visual_feat_list, concat_feat_list = [], [], []
+
         for i, batch in enumerate(test_loader):
             if batch is None:
                 continue
@@ -68,3 +76,27 @@ if __name__ == '__main__':
             # Forward pass to get the features
             audio_feat = model.audio_model(audio)
             visual_Feat = model.video_model(frame)
+
+            # Concatenate the features
+            concat_feat = torch.cat((audio_feat, visual_Feat), 1)
+            concat_feat = concat_feat.cpu().numpy()
+
+            # Save the features
+            audio_feat_list.append(audio_feat.cpu().numpy())
+            visual_feat_list.append(visual_Feat.cpu().numpy())
+            concat_feat_list.append(concat_feat)
+
+            print('Processing batch {} / {}'.format(i, len(test_loader)))
+
+        # Save the features
+        
+        audio_feat = np.concatenate(audio_feat_list, axis=0)
+        visual_feat = np.concatenate(visual_feat_list, axis=0)
+        concat_feat = np.concatenate(concat_feat_list, axis=0)
+
+        import pdb
+        pdb.set_trace()
+
+        np.save('demo_audio_feat.npy', audio_feat)
+        np.save('demo_visual_feat.npy', visual_feat)
+        np.save('demo_concat_feat.npy', concat_feat)

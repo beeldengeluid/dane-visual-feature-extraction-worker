@@ -17,6 +17,7 @@ class L3_data_module(Dataset):
 
         st = time()
         self.mode = mode
+
         self.l3_clips = list(l3_path.glob('*/*/*.npz'))
 
         self.visual_transform = T.Compose(
@@ -49,14 +50,14 @@ class L3_data_module(Dataset):
         audio = torch.tensor(audio)
         audio = self.audio_transform(audio)
 
-        cls_name = audio_path.parts[6]
+        cls_name = audio_path.parts[2]
         label = self.label_set.index(cls_name)
 
         batch_dict = dict()
         if avlabel:
             batch_dict['video'], batch_dict['audio'], batch_dict['label'] = frame, audio, label
             batch_dict['avlabel'] = 1
-            batch_dict['cls_name'], batch_dict['videoname'], batch_dict['index'] = cls_name, audio_path.parts[7], index
+            batch_dict['cls_name'], batch_dict['videoname'], batch_dict['index'] = cls_name, audio_path.parts[3], index
         else:
             batch_dict['video'], batch_dict['audio'], batch_dict['label'] = frame, audio, -1
             batch_dict['avlabel'] = 0
