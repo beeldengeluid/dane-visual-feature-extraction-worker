@@ -14,6 +14,24 @@ from output_util import get_source_id, export_features
 logger = logging.getLogger(__name__)
 
 
+def apply_model(batch, model, device):
+    frames, spectograms = batch["video"], batch["audio"]
+    timestamps = batch["timestamp"].to(device)
+    shots = batch["shot_boundaries"].to(device)
+    logger.info(f'Frame batch size: {frames.shape}')
+    logger.info(f'Audio batch size: {spectograms.shape}')
+    logger.info(f'Timestamp batch size: {timestamps.shape}')
+    logger.info(f'Shots batch size: {shots.shape}')
+    with torch.no_grad():  # Forward pass to get the features
+        audio_feat = model.audio_model(spectograms)
+        visual_feat = model.video_model(frames)
+    result = torch.concat(
+        (timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1
+    )
+    logger.info(f'Result size: {result.shape}')
+    return result
+
+
 def extract_features(
     input_path: str, model_path: str, model_config_file: str, output_path: str
 ) -> VisXPFeatureExtractionOutput:
@@ -40,19 +58,11 @@ def extract_features(
 
     # Step 4: Apply model to data
     logger.info(f"Going to extract features for {dataset.__len__()} items. ")
-
     result = torch.Tensor([]).to(device)
     for i, batch in enumerate(dataset.batches(batch_size=256)):
-        frames, spectograms = batch["video"], batch["audio"]
-        timestamps = batch["timestamp"].to(device)
-        shots = batch["shot_boundaries"].to(device)
-        with torch.no_grad():  # Forward pass to get the features
-            audio_feat = model.audio_model(spectograms)
-            visual_feat = model.video_model(frames)
-        batch_result = torch.concat(
-            (timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1
-        )
+        batch_result = apply_model(batch=batch, model=model, device=device)
         result = torch.concat((result, batch_result), 0)
+
     destination = os.path.join(output_path, f"{source_id}.pt")
     export_features(result, destination=destination)
     provenance = generate_full_provenance_chain(
