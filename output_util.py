@@ -2,7 +2,7 @@ import logging
 import os
 from typing import List
 
-# from dane.config import cfg
+from dane.config import cfg
 import torch
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ def get_source_id(input_path: str) -> str:
 
 # below this dir each processing module will put its output data in a subfolder
 def get_base_output_dir(source_id: str = "") -> str:
-    path_elements = [] # [cfg.FILE_SYSTEM.BASE_MOUNT, cfg.FILE_SYSTEM.OUTPUT_DIR]
+    path_elements = [cfg.FILE_SYSTEM.BASE_MOUNT, cfg.FILE_SYSTEM.OUTPUT_DIR]
     if source_id:
         path_elements.append(source_id)
     return os.path.join(*path_elements)
