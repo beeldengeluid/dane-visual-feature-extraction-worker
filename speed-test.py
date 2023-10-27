@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 def generate_random_batch(device, batch_size=256):
     batch = {
-        'video': torch.randn(batch_size, 3, 256, 256).to(device),
-        'audio': torch.randn(batch_size, 1, 257, 99).to(device),
-        'timestamp': torch.randn(batch_size).to(device),
-        'shot_boundaries': torch.randn(batch_size, 2).to(device),
+        "video": torch.randn(batch_size, 3, 256, 256).to(device),
+        "audio": torch.randn(batch_size, 1, 257, 99).to(device),
+        "timestamp": torch.randn(batch_size).to(device),
+        "shot_boundaries": torch.randn(batch_size, 2).to(device),
     }
     return batch
 

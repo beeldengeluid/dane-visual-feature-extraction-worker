@@ -21,9 +21,7 @@ def apply_model(batch, model, device):
     with torch.no_grad():  # Forward pass to get the features
         audio_feat = model.audio_model(spectograms)
         visual_feat = model.video_model(frames)
-    result = torch.concat(
-        (timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1
-    )
+    result = torch.concat((timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1)
     return result
 
 
@@ -42,7 +40,8 @@ def extract_features(
 
     # Step 2: Load spectograms + keyframes from file & preprocess
     dataset = VisXPData(
-        Path(input_path), model_config_file=model_config_file, device=device)
+        Path(input_path), model_config_file=model_config_file, device=device
+    )
 
     # Step 3: Load model from file
     model = load_model_from_file(
