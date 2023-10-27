@@ -19,7 +19,7 @@ parser.add_argument('--test_path', type=str, default='../frame_and_spectogram_ex
 parser.add_argument('--num_classes', type=int, default=339)
 parser.add_argument('--double_convolution', type=bool, default=True, metavar='N',
                     help='double convolution (default: True)')
-parser.add_argument('--ckpt_path', type=str, default='../../model/checkpoint_7.0.pth.tar')
+parser.add_argument('--ckpt_path', type=str, default='../../models/checkpoint.tar')
 
 parser.add_argument('--batch_size', type=int, default=512, metavar='N',
                     help='input batch size for training (default: 256)')
@@ -64,39 +64,31 @@ if __name__ == '__main__':
 
     model.eval()
     with torch.no_grad():
-
-        audio_feat_list, visual_feat_list, concat_feat_list = [], [], []
+        concat_feat_list = []
 
         for i, batch in enumerate(test_loader):
             if batch is None:
                 continue
             frame, audio, label, avlabel = batch['video'], batch['audio'], batch['label'], batch['avlabel']
             cls_name, videoname, index = batch['cls_name'], batch['videoname'], batch['index']
-
+            original_index = batch['original_index'].unsqueeze(1)
+            #import pdb
+            #pdb.set_trace()
             # Forward pass to get the features
             audio_feat = model.audio_model(audio)
             visual_Feat = model.video_model(frame)
 
             # Concatenate the features
-            concat_feat = torch.cat((audio_feat, visual_Feat), 1)
-            concat_feat = concat_feat.cpu().numpy()
+            concat_feat = torch.cat((original_index, audio_feat, visual_Feat), 1)
+
 
             # Save the features
-            audio_feat_list.append(audio_feat.cpu().numpy())
-            visual_feat_list.append(visual_Feat.cpu().numpy())
+            
             concat_feat_list.append(concat_feat)
 
             print('Processing batch {} / {}'.format(i, len(test_loader)))
 
         # Save the features
-        
-        audio_feat = np.concatenate(audio_feat_list, axis=0)
-        visual_feat = np.concatenate(visual_feat_list, axis=0)
-        concat_feat = np.concatenate(concat_feat_list, axis=0)
-
-        import pdb
-        pdb.set_trace()
-
-        np.save('demo_audio_feat.npy', audio_feat)
-        np.save('demo_visual_feat.npy', visual_feat)
-        np.save('demo_concat_feat.npy', concat_feat)
+        concat_feat, _ = torch.cat(concat_feat_list).sort(0)
+        with open('demo_concat_feat.pt', 'wb') as f:
+            torch.save(concat_feat, f)
