@@ -18,7 +18,7 @@ class L3_data_module(Dataset):
         st = time()
         self.mode = mode
 
-        self.l3_clips = list(l3_path.glob('*/*/*.npz'))
+        self.l3_clips = sorted(list(l3_path.glob('*/*/*.npz')))
 
         self.visual_transform = T.Compose(
             [   

@@ -1,14 +1,9 @@
 import argparse
 from pathlib import Path
-
-import numpy as np
 from L3_data_module import L3_data_module
 from torch.utils.data import DataLoader
-
 import torch
-import torch.nn as nn
 from models import AVNet
-import os
 
 parser = argparse.ArgumentParser(description='L3')
 
@@ -35,31 +30,19 @@ def load_checkpoint(args, model):
     if torch.cuda.is_available():
         checkpoint = torch.load(args.ckpt_path)
     else:
-        checkpoint = torch.load(args.ckpt_path,  map_location=torch.device('cpu'))
+        checkpoint = torch.load(args.ckpt_path, map_location=torch.device('cpu'))
 
     model.load_state_dict(checkpoint['state_dict'])
 
-class FeatureExtractor(nn.Module):
-    def __init__(self, original_model):
-        super(FeatureExtractor, self).__init__()
-        
-        self.features = original_model.features
-        self.classifier = nn.Sequential(*list(original_model.children())[:-1])
-        
-    def forward(self, x):
-        x = self.features(x)
-        x = x.view(x.size(0), -1)  # Flatten the tensor
-        x = self.classifier(x)
-        return x
 
 if __name__ == '__main__':
 
     # test_kmeans()
-    model = AVNet(num_classes = 2, double_convolution=args.double_convolution)
+    model = AVNet(num_classes=2, double_convolution=args.double_convolution)
     load_checkpoint(args, model)
 
     test_dataset = L3_data_module(args.test_path, mode='normal')
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
+    test_loader = DataLoader(test_dataset, batch_size=1,
                              shuffle=False, num_workers=args.num_workers, collate_fn=None)
 
     model.eval()
@@ -71,24 +54,29 @@ if __name__ == '__main__':
                 continue
             frame, audio, label, avlabel = batch['video'], batch['audio'], batch['label'], batch['avlabel']
             cls_name, videoname, index = batch['cls_name'], batch['videoname'], batch['index']
-            original_index = batch['original_index'].unsqueeze(1)
-            #import pdb
-            #pdb.set_trace()
+            original_index = batch['original_index']
+            batch_new = dict(sorted(batch.items()))
+
+            with open(f'demo_audio_{original_index[0]}.pt', 'wb') as f:
+                torch.save(audio[0], f)
+            with open(f'demo_video_{original_index[0]}.pt', 'wb') as f:
+                torch.save(frame[0], f)
+
             # Forward pass to get the features
             audio_feat = model.audio_model(audio)
             visual_Feat = model.video_model(frame)
 
             # Concatenate the features
-            concat_feat = torch.cat((original_index, audio_feat, visual_Feat), 1)
-
+            concat_feat = torch.cat((original_index.unsqueeze(1), audio_feat, visual_Feat), 1)
 
             # Save the features
-            
             concat_feat_list.append(concat_feat)
 
             print('Processing batch {} / {}'.format(i, len(test_loader)))
 
         # Save the features
-        concat_feat, _ = torch.cat(concat_feat_list).sort(0)
+        concat_feat = torch.cat(concat_feat_list)
+        import pdb
+        pdb.set_trace()
         with open('demo_concat_feat.pt', 'wb') as f:
             torch.save(concat_feat, f)
