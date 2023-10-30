@@ -1,8 +1,5 @@
 from data_handling import VisXPData
 import torch
-import torchvision.transforms as T
-import torchvision
-import numpy as np
 
 
 def test_batches():
@@ -10,7 +7,7 @@ def test_batches():
     for i, item in enumerate(dataset.batches(1)):
         index = int(item['timestamp'][0])
 
-        for kind in ['video','audio']:
+        for kind in ['video', 'audio']:
             this = item[kind][0]
         example = obtain_example(index, kind)
         assert torch.equal(example, this)
