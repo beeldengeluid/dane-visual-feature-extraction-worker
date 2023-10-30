@@ -30,12 +30,14 @@ def extract_features(
         checkpoint_file=model_path,
         config_file=model_config_file,
     )
+    # Switch model mode: in training mode, model layers behave differently!
+    model.eval()  
 
     # Apply model to data
     logger.info(f"Going to extract features for {dataset.__len__()} items. ")
 
-    result = torch.Tensor([])
-    for i, batch in enumerate(dataset.batches(batch_size=256)):
+    result_list = []
+    for i, batch in enumerate(dataset.batches(batch_size=1)):
         frames, spectograms = batch["video"], batch["audio"]
         timestamps, shots = batch["timestamp"], batch["shot_boundaries"]
         with torch.no_grad():  # Forward pass to get the features
@@ -44,7 +46,8 @@ def extract_features(
         batch_result = torch.concat(
             (timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1
         )
-        result = torch.concat((result, batch_result), 0)
+        result_list.append(batch_result)
+    result = torch.cat(result_list)
     destination = os.path.join(output_path, f"{source_id}.pt")
     export_features(result, destination=destination)
     provenance = generate_full_provenance_chain(
