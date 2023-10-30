@@ -69,7 +69,9 @@ class VisXPData(Dataset):
         item_dict = dict()
         item_dict["video"] = self.__get_keyframe__(index=index)
         item_dict["audio"] = self.__get_spec__(index=index)
-        timestamp = int(self.frame_paths[index].parts[-1].split(".")[0])  # TODO: set proper timestamp and make sure audio and video are actually aligned
+        timestamp = int(
+            self.frame_paths[index].parts[-1].split(".")[0]
+        )  # TODO: set proper timestamp and make sure audio and video are actually aligned
         item_dict["timestamp"] = timestamp
         item_dict["shot_boundaries"] = self.list_of_shots.find_shot_for_timestamp(
             timestamp=timestamp

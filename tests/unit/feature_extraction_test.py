@@ -5,14 +5,15 @@ import torch
 
 def test_extract_features():
     feature_extraction.extract_features(
-        input_path='tests/data',
-        model_path='models/checkpoint.tar',
-        model_config_file='models/model_config.yml',
-        output_path='tests/data/')
-    feature_file = 'tests/data/data.pt'
-    with open(feature_file, 'rb') as f:
+        input_path="tests/data",
+        model_path="models/checkpoint.tar",
+        model_config_file="models/model_config.yml",
+        output_path="tests/data/",
+    )
+    feature_file = "tests/data/data.pt"
+    with open(feature_file, "rb") as f:
         features = torch.load(f)
-    with open('tests/data/demo_concat_feat.pt', 'rb') as f:
+    with open("tests/data/demo_concat_feat.pt", "rb") as f:
         example_features = torch.load(f)
 
     # make sure that we're comparing the proper vectors

@@ -31,7 +31,7 @@ def extract_features(
         config_file=model_config_file,
     )
     # Switch model mode: in training mode, model layers behave differently!
-    model.eval()  
+    model.eval()
 
     # Apply model to data
     logger.info(f"Going to extract features for {dataset.__len__()} items. ")
