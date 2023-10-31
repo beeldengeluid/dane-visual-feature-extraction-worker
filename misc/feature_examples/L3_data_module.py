@@ -18,7 +18,7 @@ class L3_data_module(Dataset):
         st = time()
         self.mode = mode
 
-        self.l3_clips = list(l3_path.glob('*/*/*.npz'))
+        self.l3_clips = sorted(list(l3_path.glob('*/*/*.npz')))
 
         self.visual_transform = T.Compose(
             [   
@@ -63,6 +63,8 @@ class L3_data_module(Dataset):
             batch_dict['avlabel'] = 0
             batch_dict['cls_name'], batch_dict['videoname'], batch_dict['index'] = 'AV_negative', 'AV_negative_frame', -1
 
+        batch_dict['original_index'] = int(frame_path.split('/')[-1].split('.')[0])
+
         return batch_dict
 
     def get_positive_pairs(self, index):
@@ -72,6 +74,7 @@ class L3_data_module(Dataset):
         avlabel = True
 
         batch_dict = self.get_pair(audio_path, frame_path, avlabel, index)
+        
 
         return batch_dict
     
