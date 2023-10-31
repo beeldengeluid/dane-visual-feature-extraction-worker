@@ -49,13 +49,17 @@ def extract_features(
         config_file=model_config_file,
         device=device,
     )
+    # Switch model mode: in training mode, model layers behave differently!
+    model.eval()
 
     # Step 4: Apply model to data
     logger.info(f"Going to extract features for {dataset.__len__()} items. ")
-    result = torch.Tensor([]).to(device)
+
+    result_list = []
     for i, batch in enumerate(dataset.batches(batch_size=256)):
         batch_result = apply_model(batch=batch, model=model, device=device)
-        result = torch.concat((result, batch_result), 0)
+        result_list.append(batch_result)
+    result = torch.cat(result_list)
 
     destination = os.path.join(output_path, f"{source_id}.pt")
     export_features(result, destination=destination)

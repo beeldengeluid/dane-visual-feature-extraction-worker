@@ -21,8 +21,9 @@ class VisXPData(Dataset):
     ):
         if type(datapath) is not Path:
             datapath = Path(datapath)
-        self.spec_paths = list(datapath.glob("spectograms/*.npz"))
-        self.frame_paths = list(datapath.glob("keyframes/*.jpg"))
+        # Sorting not really necessary, but is a (poor) way of making sure specs and frames are aligned..
+        self.spec_paths = sorted(list(datapath.glob("spectograms/*.npz")))
+        self.frame_paths = sorted(list(datapath.glob("keyframes/*.jpg")))
         self.device = device
         self.set_config(model_config_file=model_config_file)
         self.list_of_shots = self.ListOfShots(datapath)
@@ -75,7 +76,9 @@ class VisXPData(Dataset):
         item_dict = dict()
         item_dict["video"] = self.__get_keyframe__(index=index)
         item_dict["audio"] = self.__get_spec__(index=index)
-        timestamp = int(self.frame_paths[index].parts[-1].split(".")[0])
+        timestamp = int(
+            self.frame_paths[index].parts[-1].split(".")[0]
+        )  # TODO: set proper timestamp and make sure audio and video are actually aligned
         item_dict["timestamp"] = timestamp
         item_dict["shot_boundaries"] = self.list_of_shots.find_shot_for_timestamp(
             timestamp=timestamp
@@ -96,7 +99,7 @@ class VisXPData(Dataset):
         return frame
 
     def batches(self, batch_size: int = 1):
-        return DataLoader(self, batch_size=batch_size)
+        return DataLoader(self, batch_size=batch_size, shuffle=False)
 
     class ListOfShots:
         def __init__(self, datapath: Path):
