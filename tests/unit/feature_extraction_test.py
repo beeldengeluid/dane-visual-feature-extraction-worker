@@ -6,8 +6,8 @@ import torch
 def test_extract_features():
     feature_extraction.extract_features(
         input_path="tests/data",
-        model_path="models/checkpoint.tar",
-        model_config_file="models/model_config.yml",
+        model_path="model/checkpoint.tar",
+        model_config_file="model/model_config.yml",
         output_path="tests/data/",
     )
     feature_file = "tests/data/data.pt"

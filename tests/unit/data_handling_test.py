@@ -3,7 +3,10 @@ import torch
 
 
 def test_batches():
-    dataset = VisXPData("tests/data/", model_config_file="models/model_config.yml")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    dataset = VisXPData(
+        "tests/data/", device=device, model_config_file="model/model_config.yml"
+    )
     for i, item in enumerate(dataset.batches(1)):
         index = int(item["timestamp"][0])
 
