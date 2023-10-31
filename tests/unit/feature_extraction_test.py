@@ -24,3 +24,7 @@ def test_extract_features():
     assert torch.equal(features, example_features)
 
     os.remove(feature_file)
+
+
+def test_example_function():
+    assert feature_extraction.example_function()
