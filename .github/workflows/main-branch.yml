@@ -18,4 +18,4 @@ jobs:
     permissions:
       contents: read
       packages: write
-    # needs: [test]
+    needs: [test]

@@ -2,17 +2,14 @@ name: Manual deploy
 
 on:
   workflow_dispatch:
-    inputs:
-      target:
-        type: choice
-        required: true
-        default: ecr
-        options:
-        - ecr
 
 jobs:
+  test:
+    uses: ./.github/workflows/_test.yml
+
   deploy:
     uses: ./.github/workflows/_deploy.yml
-    secrets: inherit
-    with:
-      target: ${{ inputs.target }}
+    permissions:
+      contents: read
+      packages: write
+    needs: [test]
