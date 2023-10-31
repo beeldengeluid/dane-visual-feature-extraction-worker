@@ -12,12 +12,19 @@ logger = logging.getLogger(__name__)
 
 
 class VisXPData(Dataset):
-    def __init__(self, datapath: Path, model_config_file: str, check_spec_dim=False):
+    def __init__(
+        self,
+        datapath: Path,
+        model_config_file: str,
+        device: torch.device,
+        check_spec_dim=False,
+    ):
         if type(datapath) is not Path:
             datapath = Path(datapath)
         # Sorting not really necessary, but is a (poor) way of making sure specs and frames are aligned..
         self.spec_paths = sorted(list(datapath.glob("spectograms/*.npz")))
         self.frame_paths = sorted(list(datapath.glob("keyframes/*.jpg")))
+        self.device = device
         self.set_config(model_config_file=model_config_file)
         self.list_of_shots = self.ListOfShots(datapath)
         if check_spec_dim:
@@ -81,14 +88,14 @@ class VisXPData(Dataset):
     def __get_spec__(self, index, transform=True):
         data = np.load(self.spec_paths[index], allow_pickle=True)
         audio = data["arr_0"].item()["audio"]
-        audio = torch.tensor(audio)
+        audio = torch.tensor(audio, device=self.device)
         if transform:
             audio = self.audio_transform(audio)
         return audio
 
     def __get_keyframe__(self, index):
-        frame = torchvision.io.read_image(str(self.frame_paths[index])) / 255.0
-        frame = self.visual_transform(frame)
+        frame = torchvision.io.read_image(str(self.frame_paths[index])).to(self.device)
+        frame = self.visual_transform(frame / 255.0)
         return frame
 
     def batches(self, batch_size: int = 1):
