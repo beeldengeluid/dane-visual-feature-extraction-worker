@@ -9,7 +9,7 @@ from pathlib import Path
 from data_handling import VisXPData
 from models import VisXPFeatureExtractionOutput
 from provenance import generate_full_provenance_chain
-from output_util import get_source_id, export_features
+from io_util import get_source_id, export_features
 
 logger = logging.getLogger(__name__)
 

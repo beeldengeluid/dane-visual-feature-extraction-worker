@@ -1,11 +1,17 @@
 import logging
 import os
-from typing import List
-
-from dane.config import cfg
+from time import time
 import torch
+from typing import List, Tuple, Optional
+
+from dane import Document
+from dane.config import cfg
+from dane.s3_util import S3Store, parse_s3_uri, validate_s3_uri
+from models import Provenance
+
 
 logger = logging.getLogger(__name__)
+DANE_VISXP_PREP_TASK_KEY = "VISXP_PREP"
 
 
 # returns the basename of the input path
@@ -85,3 +91,43 @@ def delete_input_file(input_file: str, actually_delete: bool) -> bool:
         logger.exception("FileNotFoundError while removing empty input file dirs")
 
     return True  # return True even if empty dirs were not removed
+
+
+def obtain_input_file(
+    handler, doc: Document
+) -> Tuple[Optional[str], Optional[Provenance]]:
+    # first fetch and validate the obtained S3 URI
+    s3_uri = _fetch_visxp_prep_s3_uri(handler, doc)
+    if not validate_s3_uri(s3_uri):
+        return None, None
+
+    start_time = time()
+    output_folder = get_download_dir()
+
+    # TODO download the content into get_download_dir()
+    s3 = S3Store(cfg.OUTPUT.S3_ENDPOINT_URL)
+    bucket, object_name = parse_s3_uri(s3_uri)
+    output_file = os.path.join(output_folder, os.path.basename(object_name))
+    success = s3.download_file(bucket, object_name, output_folder)
+    if success:
+        download_provenance = Provenance(
+            activity_name="download",
+            activity_description="Download VISXP_PREP data",
+            start_time_unix=start_time,
+            processing_time_ms=time() - start_time,
+            input_data={},
+            output_data={"file_path": output_file},
+        )
+        return output_file, download_provenance
+    logger.error("Failed to download VISXP_PREP data from S3")
+    return None, None
+
+
+def _fetch_visxp_prep_s3_uri(handler, doc: Document) -> str:
+    logger.info("checking download worker output")
+    possibles = handler.searchResult(doc._id, DANE_VISXP_PREP_TASK_KEY)
+    logger.info(possibles)
+    if len(possibles) > 0 and "s3_location" in possibles[0].payload:
+        return possibles[0].payload.get("s3_location", "")
+    logger.error("No s3_location found in VISXP_PREP result")
+    return ""

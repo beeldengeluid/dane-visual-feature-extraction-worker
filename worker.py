@@ -8,8 +8,9 @@ from dane import Document, Task, Result
 from dane.base_classes import base_worker
 from dane.config import cfg
 from models import CallbackResponse, Provenance
-from output_util import (
+from io_util import (
     transfer_output,
+    obtain_input_file,
     delete_local_output,
     get_base_output_dir,
     get_source_id,
@@ -137,13 +138,23 @@ class VisualFeatureExtractionWorker(base_worker):
             output_data={},
         )
 
+        # obtain the input file
         # TODO make sure to download the output from S3
-        input_path = "TODO"
-        output_path = "TODO"
+        output_file_path, download_provenance = obtain_input_file(self.handler, doc)
+        if not output_file_path:
+            return {
+                "state": 500,
+                "message": "Could not download the input from S3",
+            }
+        if download_provenance and provenance.steps:
+            provenance.steps.append(download_provenance)
+
+        input_file_path = output_file_path
+        output_path = "TODO"  # TODO think of this
 
         # step 1: apply model to extract features
         proc_result = extract_features(
-            input_path,
+            input_file_path,
             model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
             model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
             output_path=output_path,
