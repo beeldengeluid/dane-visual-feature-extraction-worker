@@ -9,9 +9,8 @@ from dane.base_classes import base_worker
 from dane.config import cfg
 from models import CallbackResponse, Provenance
 from io_util import (
-    transfer_output,
+    apply_desired_io_on_output,
     obtain_input_file,
-    delete_local_output,
     get_base_output_dir,
     get_source_id,
     get_download_dir,
@@ -140,8 +139,8 @@ class VisualFeatureExtractionWorker(base_worker):
 
         # obtain the input file
         # TODO make sure to download the output from S3
-        output_file_path, download_provenance = obtain_input_file(self.handler, doc)
-        if not output_file_path:
+        input_file_path, download_provenance = obtain_input_file(self.handler, doc)
+        if not input_file_path:
             return {
                 "state": 500,
                 "message": "Could not download the input from S3",
@@ -149,7 +148,6 @@ class VisualFeatureExtractionWorker(base_worker):
         if download_provenance and provenance.steps:
             provenance.steps.append(download_provenance)
 
-        input_file_path = output_file_path
         output_path = "TODO"  # TODO think of this
 
         # step 1: apply model to extract features
@@ -160,57 +158,29 @@ class VisualFeatureExtractionWorker(base_worker):
             output_path=output_path,
         )
 
-        # step 2: raise exception on failure
-        if proc_result.state != 200:
-            logger.error(f"Could not process the input properly: {proc_result.message}")
-            # something went wrong inside the VisXP work processor, return that response here
-            return {"state": proc_result.state, "message": proc_result.message}
-
-        if proc_result.provenance:
-            if not provenance.steps:
-                provenance.steps = []
+        if proc_result.provenance and provenance.steps:
             provenance.steps.append(proc_result.provenance)
 
-        # step 3: process returned successfully, generate the output
-        input_file = "*"
-        source_id = get_source_id(
-            input_file
-        )  # TODO: this worker does not necessarily work per source, so consider how to capture output group
-
-        # step 4: transfer the output to S3 (if configured so)
-        transfer_success = True
-        if self.TRANSFER_OUTPUT_ON_COMPLETION:
-            transfer_success = transfer_output(source_id)
-
-        if (
-            not transfer_success
-        ):  # failure of transfer, impedes the workflow, so return error
-            return {
-                "state": 500,
-                "message": "Failed to transfer output to S3",
-            }
-
-        # step 5: clear the output files (if configured so)
-        delete_success = True
-        if self.DELETE_OUTPUT_ON_COMPLETION:
-            delete_success = delete_local_output(source_id)
-
-        if (
-            not delete_success
-        ):  # NOTE: just a warning for now, but one to keep an EYE out for
-            logger.warning(f"Could not delete output files: {output_path}")
-
-        # step 6: save the results back to the DANE index
-        self.save_to_dane_index(
-            doc,
-            task,
-            get_s3_base_url(source_id),
-            provenance=provenance,
+        validated_output: CallbackResponse = apply_desired_io_on_output(
+            input_file_path,
+            proc_result,
+            self.DELETE_INPUT_ON_COMPLETION,
+            self.DELETE_OUTPUT_ON_COMPLETION,
+            self.TRANSFER_OUTPUT_ON_COMPLETION,
         )
-        return {
-            "state": 200,
-            "message": "Successfully generated VisXP data for the next worker",
-        }
+
+        if validated_output.get("state", 500) == 200:
+            logger.info(
+                "applying IO on output went well, now finally saving to DANE index"
+            )
+            # Lastly save the results back to the DANE index
+            self.save_to_dane_index(
+                doc,
+                task,
+                get_s3_base_url(get_source_id(input_file_path)),
+                provenance=provenance,
+            )
+        return validated_output
 
     # TODO adapt to VisXP
     def save_to_dane_index(
