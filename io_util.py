@@ -1,5 +1,7 @@
 import logging
 import os
+from pathlib import Path
+import tarfile
 from time import time
 import torch
 
@@ -206,3 +208,10 @@ def _fetch_visxp_prep_s3_uri(handler, doc: Document) -> str:
         return possibles[0].payload.get("s3_location", "")
     logger.error("No s3_location found in VISXP_PREP result")
     return ""
+
+
+# untars visxp_prep__<source_id>.tar.gz into the same dir
+def untar_input_file(tar_file_path: str):
+    logger.info(f"Uncompressing {tar_file_path}")
+    with tarfile.open(tar_file_path) as tar:
+        tar.extractall(path=str(Path(tar_file_path).parent), filter="data")  # type: ignore

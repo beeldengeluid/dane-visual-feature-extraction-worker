@@ -31,7 +31,7 @@ PATHS:
 VISXP_EXTRACT:
     MODEL_PATH: /model/checkpoint.tar
     MODEL_CONFIG_PATH: /model/model_config.yml
-    TEST_INPUT_PATH: /data
+    TEST_INPUT_PATH: /data/testob/visxp_prep__testob.tar.gz
 INPUT:
     DELETE_ON_COMPLETION: True
 OUTPUT:

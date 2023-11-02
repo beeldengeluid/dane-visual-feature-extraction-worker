@@ -9,7 +9,7 @@ from pathlib import Path
 from data_handling import VisXPData
 from models import VisXPFeatureExtractionOutput
 from provenance import generate_full_provenance_chain
-from io_util import get_source_id, save_features_to_file
+from io_util import get_source_id, save_features_to_file, untar_input_file
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +38,21 @@ def extract_features(
     source_id = get_source_id(input_path)
     logger.info(f"Extracting features for: {source_id}.")
 
-    # Step 2: Load spectograms + keyframes from file & preprocess
+    # Step 2: check the type of input (tar.gz vs a directory)
+    if input_path.find(".tar.gz") != -1:
+        logger.info("Input is an archive, uncompressing it")
+        untar_input_file(input_path)  # extracts contents in same dir
+        input_path = str(
+            Path(input_path).parent
+        )  # change the input path to the parent dir
+        logger.info(f"Changed input_path to: {input_path}")
+
+    # Step 3: Load spectograms + keyframes from file & preprocess
     dataset = VisXPData(
         Path(input_path), model_config_file=model_config_file, device=device
     )
 
-    # Step 3: Load model from file
+    # Step 4: Load model from file
     model = load_model_from_file(
         checkpoint_file=model_path,
         config_file=model_config_file,
@@ -52,7 +61,7 @@ def extract_features(
     # Switch model mode: in training mode, model layers behave differently!
     model.eval()
 
-    # Step 4: Apply model to data
+    # Step 5: Apply model to data
     logger.info(f"Going to extract features for {dataset.__len__()} items. ")
 
     result_list = []
