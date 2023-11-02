@@ -7,7 +7,7 @@ from base_util import validate_config
 from dane import Document, Task, Result
 from dane.base_classes import base_worker
 from dane.config import cfg
-from models import CallbackResponse, Provenance
+from models import CallbackResponse, Provenance, VisXPFeatureExtractionInput
 from io_util import (
     apply_desired_io_on_output,
     obtain_input_file,
@@ -26,9 +26,50 @@ NOTE now the output dir created by by DANE (createDirs()) for the PATHS.OUT_FOLD
 
 Instead we put the output in:
 
-- /mnt/dane-fs/output-files/visxp_prep/{source_id}
+- /mnt/dane-fs/output-files/{source_id}/visxp_features__{source_id}.pt
 """
 logger = logging.getLogger()
+
+
+# triggered by running: python worker.py --run-test-file
+def process_configured_input_file() -> bool:
+    logger.info("Triggered processing of configured VISXP_EXTRACT.TEST_INPUT_PATH")
+    feature_extraction_input = VisXPFeatureExtractionInput(
+        200,
+        f"Thank you for running us: let's test {cfg.VISXP_EXTRACT.TEST_INPUT_PATH}",
+        str(
+            Path(cfg.VISXP_EXTRACT.TEST_INPUT_PATH).parent
+        ),  # e.g. /data/testob/visxp_prep__testob.tar.gz --> testob
+        cfg.VISXP_EXTRACT.TEST_INPUT_PATH,
+        None,  # no provenance needed in test
+    )
+
+    # e.g. /mnt/dane-fs/output-files/<source_id>
+    output_path = get_base_output_dir(feature_extraction_input.source_id)
+
+    # apply model to input & extract features
+    proc_result = extract_features(
+        feature_extraction_input.input_file_path,
+        model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
+        model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
+        output_path=output_path,
+    )
+
+    if proc_result.state != 200:
+        logger.error(proc_result.message)
+        return False
+
+    # if all is ok, apply the I/O steps on the outputted features
+    validated_output: CallbackResponse = apply_desired_io_on_output(
+        feature_extraction_input,
+        proc_result,
+        cfg.INPUT.DELETE_ON_COMPLETION,
+        cfg.OUTPUT.DELETE_ON_COMPLETION,
+        cfg.OUTPUT.TRANSFER_ON_COMPLETION,
+    )
+    logger.info("Results after applying desired I/O")
+    logger.info(validated_output)
+    return True
 
 
 class VisualFeatureExtractionWorker(base_worker):
@@ -239,19 +280,7 @@ if __name__ == "__main__":
     if args.run_test_file != "n":
         logger.info("Running feature extraction with VISXP_EXTRACT.TEST_INPUT_PATH ")
         if cfg.VISXP_EXTRACT and cfg.VISXP_EXTRACT.TEST_INPUT_PATH:
-            visxp_fe = extract_features(
-                input_path=cfg.VISXP_EXTRACT.TEST_INPUT_PATH,
-                model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
-                model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
-                output_path=cfg.FILESYSTEM.OUTPUT_DIR,
-            )
-            if visxp_fe.provenance:
-                logger.info(
-                    "Successfully processed example files "
-                    f"in {visxp_fe.provenance.processing_time_ms}ms"
-                )
-            else:
-                logger.info(f"Error: {visxp_fe.state}: {visxp_fe.message}")
+            success = process_configured_input_file()
         else:
             logger.error("Please configure an input file in VISXP_PREP.TEST_INPUT_FILE")
             sys.exit()
