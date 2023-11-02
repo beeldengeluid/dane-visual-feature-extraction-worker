@@ -1,15 +1,18 @@
 import logging
-from time import time
-
 from nn_models import load_model_from_file
-import sys
-import torch
 import os
 from pathlib import Path
+from time import time
+import torch
+
 from data_handling import VisXPData
-from models import VisXPFeatureExtractionOutput
+from io_util import (
+    save_features_to_file,
+    untar_input_file,
+    get_output_file_name,
+)
+from models import VisXPFeatureExtractionOutput, VisXPFeatureExtractionInput
 from provenance import generate_full_provenance_chain
-from io_util import get_source_id, save_features_to_file, untar_input_file
 
 logger = logging.getLogger(__name__)
 
@@ -26,30 +29,37 @@ def apply_model(batch, model, device):
 
 
 def extract_features(
-    input_path: str, model_path: str, model_config_file: str, output_path: str
+    feature_extraction_input: VisXPFeatureExtractionInput,
+    model_path: str,
+    model_config_file: str,
+    output_path: str,
 ) -> VisXPFeatureExtractionOutput:
     start_time = time()
+
+    logger.warning(f"Extracting features into {output_path}")
 
     # Step 1: set up GPU processing if available
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     logger.info(f"Device is: {device}")
 
+    input_file_path = feature_extraction_input.input_file_path
+    source_id = feature_extraction_input.source_id
+
     # Step 1: this is the "processing ID" if you will
-    source_id = get_source_id(input_path)
     logger.info(f"Extracting features for: {source_id}.")
 
     # Step 2: check the type of input (tar.gz vs a directory)
-    if input_path.find(".tar.gz") != -1:
+    if input_file_path.find(".tar.gz") != -1:
         logger.info("Input is an archive, uncompressing it")
-        untar_input_file(input_path)  # extracts contents in same dir
-        input_path = str(
-            Path(input_path).parent
+        untar_input_file(input_file_path)  # extracts contents in same dir
+        input_file_path = str(
+            Path(input_file_path).parent
         )  # change the input path to the parent dir
-        logger.info(f"Changed input_path to: {input_path}")
+        logger.info(f"Changed input_file_path to: {input_file_path}")
 
     # Step 3: Load spectograms + keyframes from file & preprocess
     dataset = VisXPData(
-        Path(input_path), model_config_file=model_config_file, device=device
+        Path(input_file_path), model_config_file=model_config_file, device=device
     )
 
     # Step 4: Load model from file
@@ -71,7 +81,7 @@ def extract_features(
 
     # concatenate results and save to file
     result = torch.cat(result_list)
-    destination = os.path.join(output_path, f"{source_id}.pt")
+    destination = os.path.join(output_path, get_output_file_name(source_id))
     file_saved = save_features_to_file(result, destination=destination)
 
     if not file_saved:
@@ -85,7 +95,7 @@ def extract_features(
     # generate provenance, since all went well
     provenance = generate_full_provenance_chain(
         start_time=start_time,
-        input_path=input_path,
+        input_path=input_file_path,
         provenance_chain=[],
         output_path=destination,
     )
@@ -96,23 +106,3 @@ def extract_features(
     # Binarize resulting feature matrix
     # Use GPU for processing
     # Store binarized feature matrix to file
-
-
-if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        stream=sys.stdout,  # configure a stream handler only for now (single handler)
-        format="%(asctime)s|%(levelname)s|%(process)d|%(module)s"
-        "|%(funcName)s|%(lineno)d|%(message)s",
-    )
-
-    extract_features(
-        input_path="data/visxp_prep/ZQWO_DYnq5Q_000000",
-        output_path="data/visxp_features",
-        model_config_file="models/model_config.yml",
-        model_path="models/checkpoint.tar",
-    )
-
-
-def example_function():
-    return 0 == 0

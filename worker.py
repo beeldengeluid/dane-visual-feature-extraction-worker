@@ -9,6 +9,7 @@ from dane.base_classes import base_worker
 from dane.config import cfg
 from models import CallbackResponse, Provenance, VisXPFeatureExtractionInput
 from io_util import (
+    get_source_id_from_tar,
     apply_desired_io_on_output,
     obtain_input_file,
     get_base_output_dir,
@@ -37,9 +38,7 @@ def process_configured_input_file() -> bool:
     feature_extraction_input = VisXPFeatureExtractionInput(
         200,
         f"Thank you for running us: let's test {cfg.VISXP_EXTRACT.TEST_INPUT_PATH}",
-        str(
-            Path(cfg.VISXP_EXTRACT.TEST_INPUT_PATH).parent
-        ),  # e.g. /data/testob/visxp_prep__testob.tar.gz --> testob
+        get_source_id_from_tar(cfg.VISXP_EXTRACT.TEST_INPUT_PATH),
         cfg.VISXP_EXTRACT.TEST_INPUT_PATH,
         None,  # no provenance needed in test
     )
@@ -49,7 +48,7 @@ def process_configured_input_file() -> bool:
 
     # apply model to input & extract features
     proc_result = extract_features(
-        feature_extraction_input.input_file_path,
+        feature_extraction_input,
         model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
         model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
         output_path=output_path,
@@ -195,7 +194,7 @@ class VisualFeatureExtractionWorker(base_worker):
 
         # step 1: apply model to extract features
         proc_result = extract_features(
-            feature_extraction_input.input_file_path,
+            feature_extraction_input,
             model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
             model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
             output_path=output_path,

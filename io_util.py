@@ -18,7 +18,9 @@ from models import (
 
 logger = logging.getLogger(__name__)
 DANE_VISXP_PREP_TASK_KEY = "VISXP_PREP"
-OUTPUT_FILE_BASE_NAME = "VISXP_FEATURES"
+OUTPUT_FILE_BASE_NAME = "visxp_features"
+INPUT_FILE_BASE_NAME = "visxp_prep"
+INPUT_FILE_EXTENSION = ".tar.gz"
 
 
 # assesses the output and makes sure input & output is handled properly
@@ -67,12 +69,14 @@ def apply_desired_io_on_output(
     }
 
 
-# returns the basename of the input path
-# throughout processing this is then used as a unique ID
-# to keep track of the input/output
-def get_source_id(input_path: str) -> str:
+# NOTE: only use for test run & unit test with input that points to tar file!
+# e.g. ./data/input-files/visxp_prep__testob.tar.gz
+def get_source_id_from_tar(input_path: str) -> str:
     fn = os.path.basename(input_path)
-    return fn[0 : fn.rfind(".")] if "." in fn else fn
+    tmp = fn.split("__")
+    source_id = tmp[1][:-len(INPUT_FILE_EXTENSION)]
+    logger.info(f"Using source_id: {source_id}")
+    return source_id
 
 
 # below this dir each processing module will put its output data in a subfolder
@@ -110,7 +114,7 @@ def source_id_from_s3_uri(s3_uri: str) -> str:
 # saves the features to a local file, so it can be uploaded to S3
 def save_features_to_file(features: torch.Tensor, destination: str) -> bool:
     try:
-        with open(os.path.join(destination), "wb") as f:
+        with open(destination, "wb") as f:
             torch.save(obj=features, f=f)
             return True
     except Exception:

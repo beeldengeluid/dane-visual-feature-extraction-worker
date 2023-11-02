@@ -3,7 +3,6 @@
 /model
 /config
 /config.yml
-/config-local.yml
 /tests
 .venv
 .flake8

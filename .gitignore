@@ -1,8 +1,11 @@
 dmvr_examples
 .venv
-/config-local.yml
+/config.yml
 /data/*
+!/data/example_dataset
 !/data/README.md
+!/data/demo_concat_feat.pt
+!/data/input-files
 __pycache__
 .coverage
 /model/*
