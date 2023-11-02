@@ -12,9 +12,8 @@ from io_util import (
     apply_desired_io_on_output,
     obtain_input_file,
     get_base_output_dir,
-    get_source_id,
     get_download_dir,
-    get_s3_base_url,
+    get_s3_output_file_uri,
 )
 from pika.exceptions import ChannelClosedByBroker  # type: ignore
 from feature_extraction import extract_features
@@ -139,20 +138,23 @@ class VisualFeatureExtractionWorker(base_worker):
 
         # obtain the input file
         # TODO make sure to download the output from S3
-        input_file_path, download_provenance = obtain_input_file(self.handler, doc)
-        if not input_file_path:
+        feature_extraction_input = obtain_input_file(self.handler, doc)
+        if not feature_extraction_input.state == 200:
             return {
-                "state": 500,
-                "message": "Could not download the input from S3",
+                "state": feature_extraction_input.state,
+                "message": feature_extraction_input.message,
             }
-        if download_provenance and provenance.steps:
-            provenance.steps.append(download_provenance)
+        if feature_extraction_input.provenance and provenance.steps:
+            provenance.steps.append(feature_extraction_input.provenance)
 
-        output_path = "TODO"  # TODO think of this
+        # e.g. /mnt/dane-fs/output-files/<source_id>
+        output_path = get_base_output_dir(
+            feature_extraction_input.source_id
+        )  # TODO think of this
 
         # step 1: apply model to extract features
         proc_result = extract_features(
-            input_file_path,
+            feature_extraction_input.input_file_path,
             model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
             model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
             output_path=output_path,
@@ -162,7 +164,7 @@ class VisualFeatureExtractionWorker(base_worker):
             provenance.steps.append(proc_result.provenance)
 
         validated_output: CallbackResponse = apply_desired_io_on_output(
-            input_file_path,
+            feature_extraction_input,
             proc_result,
             self.DELETE_INPUT_ON_COMPLETION,
             self.DELETE_OUTPUT_ON_COMPLETION,
@@ -177,7 +179,7 @@ class VisualFeatureExtractionWorker(base_worker):
             self.save_to_dane_index(
                 doc,
                 task,
-                get_s3_base_url(get_source_id(input_file_path)),
+                get_s3_output_file_uri(feature_extraction_input.source_id),
                 provenance=provenance,
             )
         return validated_output

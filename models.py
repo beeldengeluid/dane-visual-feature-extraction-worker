@@ -37,13 +37,16 @@ class Provenance:
 
 @dataclass
 class VisXPFeatureExtractionInput:
-    state: int
-    message: str
-    provenance: Optional[Provenance]
+    state: int  # HTTP status code
+    message: str  # error/sucess message
+    source_id: str = ""  # <program ID>__<carrier ID>
+    input_file_path: str = ""  # where the visxp_prep.tar.gz was downloaded
+    provenance: Optional[Provenance] = None  # mostly: how long did it take to download
 
 
 @dataclass
 class VisXPFeatureExtractionOutput:
-    state: int
-    message: str
-    provenance: Optional[Provenance]
+    state: int  # HTTP status code
+    message: str  # error/success message
+    output_file_path: str = ""  # where to store the extracted features
+    provenance: Optional[Provenance] = None  # feature extraction provenance

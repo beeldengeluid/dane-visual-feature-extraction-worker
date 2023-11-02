@@ -2,21 +2,26 @@ import logging
 import os
 from time import time
 import torch
-from typing import List, Tuple, Optional
 
 from dane import Document
 from dane.config import cfg
 from dane.s3_util import S3Store, parse_s3_uri, validate_s3_uri
-from models import CallbackResponse, Provenance, VisXPFeatureExtractionOutput
+from models import (
+    CallbackResponse,
+    Provenance,
+    VisXPFeatureExtractionOutput,
+    VisXPFeatureExtractionInput,
+)
 
 
 logger = logging.getLogger(__name__)
 DANE_VISXP_PREP_TASK_KEY = "VISXP_PREP"
+OUTPUT_FILE_BASE_NAME = "VISXP_FEATURES"
 
 
 # assesses the output and makes sure input & output is handled properly
 def apply_desired_io_on_output(
-    input_file: str,
+    feature_extraction_input: VisXPFeatureExtractionInput,
     proc_result: VisXPFeatureExtractionOutput,
     delete_input_on_completion: bool,
     delete_output_on_completetion: bool,
@@ -29,9 +34,7 @@ def apply_desired_io_on_output(
         return {"state": proc_result.state, "message": proc_result.message}
 
     # step 3: process returned successfully, generate the output
-    source_id = get_source_id(
-        input_file
-    )  # TODO: this worker does not necessarily work per source, so consider how to capture output group
+    source_id = feature_extraction_input.source_id
     output_path = get_base_output_dir(source_id)  # TODO actually make sure this works
 
     # step 4: transfer the output to S3 (if configured so)
@@ -78,9 +81,39 @@ def get_base_output_dir(source_id: str = "") -> str:
     return os.path.join(*path_elements)
 
 
-def export_features(features: torch.Tensor, destination: str):
-    with open(os.path.join(destination), "wb") as f:
-        torch.save(obj=features, f=f)
+# output file name of the final .pt file that will be uploaded to S3
+# TODO decide whether to tar.gz this as well
+def get_output_file_name(source_id: str) -> str:
+    return f"{OUTPUT_FILE_BASE_NAME}__{source_id}.pt"
+
+
+# e.g. s3://<bucket>/assets/<source_id>
+def get_s3_base_uri(source_id: str) -> str:
+    return f"s3://{os.path.join(cfg.OUTPUT.S3_BUCKET, cfg.OUTPUT.S3_FOLDER_IN_BUCKET, source_id)}"
+
+
+# e.g. s3://<bucket>/assets/<source_id>/visxp_features__<source_id>.pt
+def get_s3_output_file_uri(source_id: str) -> str:
+    return f"{get_s3_base_uri(source_id)}/{get_output_file_name(source_id)}"
+
+
+# e.g. s3://<bucket>/assets/<source_id>/visxp_prep__<source_id>.tar.gz
+# TODO add validation of 1st VisXP worker's S3 URI
+def source_id_from_s3_uri(s3_uri: str) -> str:
+    fn = os.path.basename(s3_uri)
+    source_id = fn[: -len(".tar.gz")].split("__")[1]
+    return f"{source_id}"
+
+
+# saves the features to a local file, so it can be uploaded to S3
+def save_features_to_file(features: torch.Tensor, destination: str) -> bool:
+    try:
+        with open(os.path.join(destination), "wb") as f:
+            torch.save(obj=features, f=f)
+            return True
+    except Exception:
+        logger.exception("Failed to save features to file")
+    return False
 
 
 def delete_local_output(source_id: str) -> bool:
@@ -94,21 +127,8 @@ def transfer_output(output_dir: str) -> bool:
     return True
 
 
-def get_s3_base_url(source_id: str) -> str:
-    return f"s3://{os.path.join(cfg.OUTPUT.S3_BUCKET, cfg.OUTPUT.S3_FOLDER_IN_BUCKET, source_id)}"
-
-
-def obtain_files_to_upload_to_s3(output_dir: str) -> List[str]:
-    s3_file_list = []
-    for root, dirs, files in os.walk(output_dir):
-        for f in files:
-            s3_file_list.append(os.path.join(root, f))
-    return s3_file_list
-
-
-# TODO: implement or replace function calls
 def get_download_dir():
-    return ""
+    return os.path.join(cfg.FILE_SYSTEM.BASE_MOUNT, cfg.FILE_SYSTEM.INPUT_DIR)
 
 
 # NOTE: untested
@@ -141,14 +161,12 @@ def delete_input_file(input_file: str, actually_delete: bool) -> bool:
     return True  # return True even if empty dirs were not removed
 
 
-def obtain_input_file(
-    handler, doc: Document
-) -> Tuple[Optional[str], Optional[Provenance]]:
+def obtain_input_file(handler, doc: Document) -> VisXPFeatureExtractionInput:
     # first fetch and validate the obtained S3 URI
     # TODO make sure this is a valid S3 URI
     s3_uri = _fetch_visxp_prep_s3_uri(handler, doc)
     if not validate_s3_uri(s3_uri):
-        return None, None
+        return VisXPFeatureExtractionInput(500, f"Invalid S3 URI: {s3_uri}")
 
     start_time = time()
     output_folder = get_download_dir()
@@ -161,7 +179,7 @@ def obtain_input_file(
     if success:
         # TODO uncompress the visxp_prep.tar.gz
 
-        download_provenance = Provenance(
+        provenance = Provenance(
             activity_name="download",
             activity_description="Download VISXP_PREP data",
             start_time_unix=start_time,
@@ -169,9 +187,15 @@ def obtain_input_file(
             input_data={},
             output_data={"file_path": input_file_path},
         )
-        return input_file_path, download_provenance
+        return VisXPFeatureExtractionInput(
+            200,
+            f"Failed to download: {s3_uri}",
+            source_id_from_s3_uri(s3_uri),  # source_id
+            input_file_path,  # locally downloaded .tar.gz
+            provenance,
+        )
     logger.error("Failed to download VISXP_PREP data from S3")
-    return None, None
+    return VisXPFeatureExtractionInput(500, f"Failed to download: {s3_uri}")
 
 
 def _fetch_visxp_prep_s3_uri(handler, doc: Document) -> str:

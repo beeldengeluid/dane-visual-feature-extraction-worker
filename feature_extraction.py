@@ -9,7 +9,7 @@ from pathlib import Path
 from data_handling import VisXPData
 from models import VisXPFeatureExtractionOutput
 from provenance import generate_full_provenance_chain
-from io_util import get_source_id, export_features
+from io_util import get_source_id, save_features_to_file
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +59,21 @@ def extract_features(
     for i, batch in enumerate(dataset.batches(batch_size=256)):
         batch_result = apply_model(batch=batch, model=model, device=device)
         result_list.append(batch_result)
-    result = torch.cat(result_list)
 
+    # concatenate results and save to file
+    result = torch.cat(result_list)
     destination = os.path.join(output_path, f"{source_id}.pt")
-    export_features(result, destination=destination)
+    file_saved = save_features_to_file(result, destination=destination)
+
+    if not file_saved:
+        return VisXPFeatureExtractionOutput(
+            500,
+            f"Could not save extracted features to {destination}",
+            destination,
+            None,
+        )
+
+    # generate provenance, since all went well
     provenance = generate_full_provenance_chain(
         start_time=start_time,
         input_path=input_path,
@@ -70,7 +81,7 @@ def extract_features(
         output_path=destination,
     )
     return VisXPFeatureExtractionOutput(
-        200, "Succesfully extracted features", provenance
+        200, "Succesfully extracted features", destination, provenance
     )
 
     # Binarize resulting feature matrix
