@@ -21,7 +21,9 @@ from provenance import generate_full_provenance_chain
 logger = logging.getLogger(__name__)
 
 
-def extract_visual_features(feature_extraction_input: VisXPFeatureExtractionInput):
+def extract_visual_features(
+    feature_extraction_input: VisXPFeatureExtractionInput,
+) -> VisXPFeatureExtractionOutput:
     logger.info("Starting VisXP visual feature extraction")
     start_time = time()
     feature_extraction_provenance = feature_extraction.run(

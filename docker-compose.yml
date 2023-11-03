@@ -8,6 +8,8 @@ services:
       - ./config:/root/.DANE
     container_name: visxp_worker_2
     command: --run-test-file  # NOTE: comment this line to spin up th worker
+    env_file:
+      - s3-creds.env
     logging:
       options:
         max-size: 20m
