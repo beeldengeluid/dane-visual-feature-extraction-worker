@@ -8,6 +8,7 @@ from io_util import (
     get_output_file_path,
     transfer_output,
     delete_local_output,
+    delete_input_file,
 )
 from models import (
     CallbackResponse,
@@ -21,7 +22,9 @@ from provenance import generate_full_provenance_chain
 logger = logging.getLogger(__name__)
 
 
-def extract_visual_features(feature_extraction_input: VisXPFeatureExtractionInput):
+def extract_visual_features(
+    feature_extraction_input: VisXPFeatureExtractionInput,
+) -> VisXPFeatureExtractionOutput:
     logger.info("Starting VisXP visual feature extraction")
     start_time = time()
     feature_extraction_provenance = feature_extraction.run(
@@ -88,8 +91,16 @@ def apply_desired_io_on_output(
             # NOTE: just a warning for now, but one to keep an eye out for
             logger.warning(f"Could not delete output files: {output_path}")
 
-    if delete_input_on_completion:
-        logger.warning("Deletion of input not supported yet")
+    # step 8: clean the input file (if configured so)
+    if not delete_input_file(
+        feature_extraction_input.input_file_path,
+        feature_extraction_input.source_id,
+        delete_input_on_completion,
+    ):
+        return {
+            "state": 500,
+            "message": "Generated VISXP_PREP output, but could not delete the input file",
+        }
 
     return {
         "state": 200,

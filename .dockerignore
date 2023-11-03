@@ -12,3 +12,4 @@
 .pytest_cache
 .coverage
 __pycache__
+s3-creds.env
