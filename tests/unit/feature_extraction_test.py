@@ -38,3 +38,7 @@ def test_extract_features():
     assert torch.equal(features, example_features)
 
     os.remove(feature_file)
+
+
+def test_dummy():
+    assert 1 == 1
