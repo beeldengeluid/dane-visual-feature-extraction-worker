@@ -176,12 +176,15 @@ def transfer_output(source_id: str) -> bool:
     return True
 
 
-def get_download_dir():
+def get_download_dir() -> str:
     return os.path.join(cfg.FILE_SYSTEM.BASE_MOUNT, cfg.FILE_SYSTEM.INPUT_DIR)
 
 
-# NOTE: untested
-def delete_input_file(input_file: str, actually_delete: bool) -> bool:
+def get_base_input_dir(source_id: str) -> str:
+    return os.path.join(get_download_dir(), source_id)
+
+
+def delete_input_file(input_file: str, source_id: str, actually_delete: bool) -> bool:
     logger.info(f"Verifying deletion of input file: {input_file}")
     if actually_delete is False:
         logger.info("Configured to leave the input alone, skipping deletion")
@@ -190,18 +193,22 @@ def delete_input_file(input_file: str, actually_delete: bool) -> bool:
     # first remove the input file
     try:
         os.remove(input_file)
-        logger.info(f"Deleted VisXP input file: {input_file}")
+        logger.info(f"Deleted VisXP input tar file: {input_file}")
     except OSError:
         logger.exception("Could not delete input file")
         return False
 
-    # now remove the "chunked path" from /mnt/dane-fs/input-files/03/d2/8a/03d28a03643a981284b403b91b95f6048576c234/xyz.mp4
+    # now remove the folders that were extracted from the input tar file
+    base_input_dir = get_base_input_dir(source_id)
     try:
-        os.chdir(get_download_dir())  # cd /mnt/dane-fs/input-files
-        os.removedirs(
-            f".{input_file[len(get_download_dir()):input_file.rfind(os.sep)]}"
-        )  # /03/d2/8a/03d28a03643a981284b403b91b95f6048576c234
-        logger.info("Deleted empty input dirs too")
+        for root, dirs, files in os.walk(base_input_dir):
+            for d in dirs:
+                dir_path = os.path.join(root, d)
+                logger.info(f"Deleting {dir_path}")
+                shutil.rmtree(dir_path)
+        logger.info("Deleted extracted input dirs")
+        os.removedirs(base_input_dir)
+        logger.info(f"Finally deleted the base_input_dir: {base_input_dir}")
     except OSError:
         logger.exception("OSError while removing empty input file dirs")
     except FileNotFoundError:
@@ -217,13 +224,17 @@ def obtain_input_file(handler, doc: Document) -> VisXPFeatureExtractionInput:
     if not validate_s3_uri(s3_uri):
         return VisXPFeatureExtractionInput(500, f"Invalid S3 URI: {s3_uri}")
 
+    source_id = source_id_from_s3_uri(s3_uri)
     start_time = time()
-    output_folder = get_download_dir()
+    output_folder = get_base_input_dir(source_id)
 
     # TODO download the content into get_download_dir()
     s3 = S3Store(cfg.OUTPUT.S3_ENDPOINT_URL)
     bucket, object_name = parse_s3_uri(s3_uri)
-    input_file_path = os.path.join(output_folder, os.path.basename(object_name))
+    input_file_path = os.path.join(
+        get_download_dir(),
+        os.path.basename(object_name),  # source_id is part of the object_name
+    )
     success = s3.download_file(bucket, object_name, output_folder)
     if success:
         # TODO uncompress the visxp_prep.tar.gz

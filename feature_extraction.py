@@ -39,13 +39,17 @@ def run(
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     logger.info(f"Device is: {device}")
 
+    # Step 2: verify the input file's existence
     input_file_path = feature_extraction_input.input_file_path
-    source_id = feature_extraction_input.source_id
+    if not os.path.exists(input_file_path):
+        logger.error(f"Input path does not exist {input_file_path}")
+        return None
 
-    # Step 1: this is the "processing ID" if you will
+    # This is the "processing ID" if you will
+    source_id = feature_extraction_input.source_id
     logger.info(f"Extracting features for: {source_id}.")
 
-    # Step 2: check the type of input (tar.gz vs a directory)
+    # Step 3: check the type of input (tar.gz vs a directory)
     if input_file_path.find(".tar.gz") != -1:
         logger.info("Input is an archive, uncompressing it")
         untar_input_file(input_file_path)  # extracts contents in same dir
@@ -54,12 +58,12 @@ def run(
         )  # change the input path to the parent dir
         logger.info(f"Changed input_file_path to: {input_file_path}")
 
-    # Step 3: Load spectograms + keyframes from file & preprocess
+    # Step 4: Load spectograms + keyframes from file & preprocess
     dataset = VisXPData(
         Path(input_file_path), model_config_file=model_config_file, device=device
     )
 
-    # Step 4: Load model from file
+    # Step 5: Load model from file
     model = load_model_from_file(
         checkpoint_file=model_path,
         config_file=model_config_file,
@@ -68,7 +72,7 @@ def run(
     # Switch model mode: in training mode, model layers behave differently!
     model.eval()
 
-    # Step 5: Apply model to data
+    # Step 6: Apply model to data
     logger.info(f"Going to extract features for {dataset.__len__()} items. ")
 
     result_list = []
@@ -76,7 +80,7 @@ def run(
         batch_result = apply_model(batch=batch, model=model, device=device)
         result_list.append(batch_result)
 
-    # concatenate results and save to file
+    # Step 7: concatenate results and save to file
     result = torch.cat(result_list)
     file_saved = _save_features_to_file(result, output_file_path)
 
