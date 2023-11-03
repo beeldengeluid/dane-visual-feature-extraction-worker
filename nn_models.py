@@ -2,6 +2,10 @@ import torch
 from torch import nn
 from yacs.config import CfgNode as CN
 import logging
+from typing import Optional
+
+from dane.s3_util import S3Store, parse_s3_uri, validate_s3_uri
+
 
 logger = logging.getLogger(__name__)
 
@@ -233,6 +237,31 @@ class AVNet(nn.Module):
         x = self.lin2(x)
 
         return x
+
+
+def download_model_from_s3(
+    model_base_mount: str,
+    model_checkpoint_s3_uri: str,
+    model_config_s3_uri: str,
+    s3_endpoint_url: Optional[str] = "",
+) -> bool:
+    logger.info("Trying to download models from S3")
+    s3_uris = [model_checkpoint_s3_uri, model_config_s3_uri]
+
+    if not all([validate_s3_uri(s3_uri) for s3_uri in s3_uris]):
+        logger.error("Please provide valid S3 URI's only")
+        return False
+
+    for s3_uri in s3_uris:
+        s3 = S3Store(s3_endpoint_url)
+        bucket, object_name = parse_s3_uri(s3_uri)
+        success = s3.download_file(bucket, object_name, model_base_mount)
+        if not success:
+            logger.error(f"Could not download {s3_uri} into {model_base_mount}")
+            return False
+        logger.info(f"Downloaded {s3_uri} into {model_base_mount}")
+    logger.info("Succesfully downloaded model and its config")
+    return True
 
 
 def load_model_from_file(checkpoint_file, config_file, device):

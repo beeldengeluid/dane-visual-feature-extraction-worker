@@ -1,4 +1,5 @@
 import logging
+import os
 from time import time
 
 from dane.config import cfg
@@ -16,21 +17,55 @@ from models import (
     VisXPFeatureExtractionInput,
     OutputType,
 )
+from nn_models import download_model_from_s3
 from provenance import generate_full_provenance_chain
 
 
 logger = logging.getLogger(__name__)
 
 
+# makes sure the models are available, if not downloads them from S3
+def check_model_availability():
+    logger.info("Checking if the model and its config are available")
+    model_checkpoint_path = os.path.join(
+        cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT, cfg.VISXP_EXTRACT.MODEL_CHECKPOINT_FILE
+    )
+    model_config_path = os.path.join(
+        cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT, cfg.VISXP_EXTRACT.MODEL_CONFIG_FILE
+    )
+    if os.path.exists(model_checkpoint_path) and os.path.exists(model_config_path):
+        logger.info("Models found, continuing")
+        return True
+
+    logger.info("Model not found, checking availability in S3")
+    download_success = download_model_from_s3(
+        cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT,  # download models into this dir
+        cfg.INPUT.MODEL_CHECKPOINT_S3_URI,  # model checkpoint file is stored here
+        cfg.INPUT.MODEL_CONFIG_S3_URI,  # model config file is stored here
+        cfg.INPUT.S3_ENDPOINT_URL,  # the endpoint URL of the S3 host
+    )
+
+    if not download_success:
+        logger.error("Could not download models from S3")
+        return False
+    return True
+
+
 def extract_visual_features(
     feature_extraction_input: VisXPFeatureExtractionInput,
 ) -> VisXPFeatureExtractionOutput:
     logger.info("Starting VisXP visual feature extraction")
-    start_time = time()
+
+    # first check if the model and its config are available
+    if not check_model_availability():
+        return VisXPFeatureExtractionOutput(500, "Could not find model and its config")
+
+    start_time = time()  # skip counting the download of the model
     feature_extraction_provenance = feature_extraction.run(
         feature_extraction_input,
-        model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
-        model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
+        model_base_mount=cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT,
+        model_checkpoint_file=cfg.VISXP_EXTRACT.MODEL_CHECKPOINT_FILE,
+        model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_FILE,
         output_file_path=get_output_file_path(
             feature_extraction_input.source_id, OutputType.FEATURES
         ),

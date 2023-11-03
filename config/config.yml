@@ -29,16 +29,20 @@ PATHS:
     TEMP_FOLDER: /data/input-files
     OUT_FOLDER: /data/output-files
 VISXP_EXTRACT:
-    MODEL_PATH: /model/checkpoint.tar
-    MODEL_CONFIG_PATH: /model/model_config.yml
+    MODEL_BASE_MOUNT: /model
+    MODEL_CHECKPOINT_FILE: checkpoint.tar  # should be in MODEL_BASE_MOUNT
+    MODEL_CONFIG_FILE: model_config.yml  # should be in MODEL_BASE_MOUNT
     TEST_INPUT_PATH: /data/input-files/testob/visxp_prep__testob.tar.gz
 INPUT:
+    S3_ENDPOINT_URL: https://s3-host
+    MODEL_CHECKPOINT_S3_URI: s3://beng-daan-visxp/model/checkpoint.tar
+    MODEL_CONFIG_S3_URI: s3://beng-daan-visxp/model/model_config.yml
     DELETE_ON_COMPLETION: False
 OUTPUT:
     DELETE_ON_COMPLETION: True
     TRANSFER_ON_COMPLETION: True
-    S3_ENDPOINT_URL: http://localhost:9000
-    S3_BUCKET: test-bucket  # bucket reserved for 1 type of output
+    S3_ENDPOINT_URL: https://s3-host
+    S3_BUCKET: beng-daan-visxp  # bucket reserved for 1 type of output
     S3_FOLDER_IN_BUCKET: assets  # folder within the bucket
 DANE_DEPENDENCIES:
     - DOWNLOAD

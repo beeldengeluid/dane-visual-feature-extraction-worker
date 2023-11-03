@@ -21,8 +21,9 @@ def test_extract_features():
             UNIT_TEST_INPUT_PATH,
             None,  # no provenance needed in test
         ),
-        model_path="model/checkpoint.tar",
-        model_config_file="model/model_config.yml",
+        model_base_mount="model",
+        model_checkpoint_file="checkpoint.tar",
+        model_config_file="model_config.yml",
         output_file_path=feature_file,
     )
     with open(feature_file, "rb") as f:

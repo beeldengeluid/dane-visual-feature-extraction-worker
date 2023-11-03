@@ -1,5 +1,4 @@
 import logging
-from nn_models import load_model_from_file
 import os
 from pathlib import Path
 from time import time
@@ -9,6 +8,7 @@ from typing import Optional
 from data_handling import VisXPData
 from io_util import untar_input_file
 from models import VisXPFeatureExtractionInput, Provenance
+from nn_models import load_model_from_file
 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,8 @@ def apply_model(batch, model, device):
 
 def run(
     feature_extraction_input: VisXPFeatureExtractionInput,
-    model_path: str,
+    model_base_mount: str,
+    model_checkpoint_file: str,
     model_config_file: str,
     output_file_path: str,
 ) -> Optional[Provenance]:
@@ -60,13 +61,15 @@ def run(
 
     # Step 4: Load spectograms + keyframes from file & preprocess
     dataset = VisXPData(
-        Path(input_file_path), model_config_file=model_config_file, device=device
+        Path(input_file_path),
+        model_config_file=os.path.join(model_base_mount, model_config_file),
+        device=device,
     )
 
     # Step 5: Load model from file
     model = load_model_from_file(
-        checkpoint_file=model_path,
-        config_file=model_config_file,
+        checkpoint_file=os.path.join(model_base_mount, model_checkpoint_file),
+        config_file=os.path.join(model_base_mount, model_config_file),
         device=device,
     )
     # Switch model mode: in training mode, model layers behave differently!
