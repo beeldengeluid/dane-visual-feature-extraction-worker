@@ -7,17 +7,17 @@ from base_util import validate_config
 from dane import Document, Task, Result
 from dane.base_classes import base_worker
 from dane.config import cfg
-from models import CallbackResponse, Provenance, VisXPFeatureExtractionInput
+from models import CallbackResponse, OutputType, Provenance, VisXPFeatureExtractionInput
 from io_util import (
+    generate_output_dirs,
     get_source_id_from_tar,
-    apply_desired_io_on_output,
     obtain_input_file,
     get_base_output_dir,
     get_download_dir,
     get_s3_output_file_uri,
 )
 from pika.exceptions import ChannelClosedByBroker  # type: ignore
-from feature_extraction import extract_features
+from main_data_processor import extract_visual_features, apply_desired_io_on_output
 
 
 """
@@ -43,16 +43,11 @@ def process_configured_input_file() -> bool:
         None,  # no provenance needed in test
     )
 
-    # e.g. /mnt/dane-fs/output-files/<source_id>
-    output_path = get_base_output_dir(feature_extraction_input.source_id)
+    # first generate the output dirs
+    generate_output_dirs(feature_extraction_input.source_id)
 
     # apply model to input & extract features
-    proc_result = extract_features(
-        feature_extraction_input,
-        model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
-        model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
-        output_path=output_path,
-    )
+    proc_result = extract_visual_features(feature_extraction_input)
 
     if proc_result.state != 200:
         logger.error(proc_result.message)
@@ -187,18 +182,11 @@ class VisualFeatureExtractionWorker(base_worker):
         if feature_extraction_input.provenance and provenance.steps:
             provenance.steps.append(feature_extraction_input.provenance)
 
-        # e.g. /mnt/dane-fs/output-files/<source_id>
-        output_path = get_base_output_dir(
-            feature_extraction_input.source_id
-        )  # TODO think of this
+        # first generate the output dirs
+        generate_output_dirs(feature_extraction_input.source_id)
 
-        # step 1: apply model to extract features
-        proc_result = extract_features(
-            feature_extraction_input,
-            model_path=cfg.VISXP_EXTRACT.MODEL_PATH,
-            model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_PATH,
-            output_path=output_path,
-        )
+        # apply model to input & extract features
+        proc_result = extract_visual_features(feature_extraction_input)
 
         if proc_result.provenance and provenance.steps:
             provenance.steps.append(proc_result.provenance)
@@ -219,7 +207,9 @@ class VisualFeatureExtractionWorker(base_worker):
             self.save_to_dane_index(
                 doc,
                 task,
-                get_s3_output_file_uri(feature_extraction_input.source_id),
+                get_s3_output_file_uri(
+                    feature_extraction_input.source_id, OutputType.FEATURES
+                ),
                 provenance=provenance,
             )
         return validated_output

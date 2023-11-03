@@ -2,8 +2,8 @@ import os
 import torch
 
 import feature_extraction
-from io_util import get_output_file_name, get_base_output_dir
-from models import VisXPFeatureExtractionInput
+from io_util import get_output_file_path
+from models import OutputType, VisXPFeatureExtractionInput
 
 
 UNIT_TEST_SOURCE_ID = "test_source_id"
@@ -11,7 +11,9 @@ UNIT_TEST_INPUT_PATH = f"./data/input-files/{UNIT_TEST_SOURCE_ID}"
 
 
 def test_extract_features():
-    feature_extraction.extract_features(
+    feature_file = get_output_file_path(UNIT_TEST_SOURCE_ID, OutputType.FEATURES)
+    print(f"FEATURE FILE: {feature_file}")
+    feature_extraction.run(
         feature_extraction_input=VisXPFeatureExtractionInput(
             200,
             f"Thank you for unit testing: let's process {UNIT_TEST_INPUT_PATH}",
@@ -21,9 +23,8 @@ def test_extract_features():
         ),
         model_path="model/checkpoint.tar",
         model_config_file="model/model_config.yml",
-        output_path=get_base_output_dir(UNIT_TEST_SOURCE_ID),
+        output_file_path=feature_file,
     )
-    feature_file = f"./data/output-files/test_source_id/{get_output_file_name(UNIT_TEST_SOURCE_ID)}"
     with open(feature_file, "rb") as f:
         features = torch.load(f)
     with open("./data/demo_concat_feat.pt", "rb") as f:

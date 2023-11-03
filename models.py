@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from typing import Optional, TypedDict
 
 
@@ -6,6 +7,12 @@ from typing import Optional, TypedDict
 class CallbackResponse(TypedDict):
     state: int
     message: str
+
+
+# These are the types of output this worker (possibly) provides (depending on configuration)
+class OutputType(Enum):
+    FEATURES = "features"  # produced by feature_extraction.py
+    PROVENANCE = "provenance"  # produced by provenance.py
 
 
 # NOTE https://stackoverflow.com/questions/20670732/is-input-a-keyword-in-python

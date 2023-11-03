@@ -4,15 +4,12 @@ import os
 from pathlib import Path
 from time import time
 import torch
+from typing import Optional
 
 from data_handling import VisXPData
-from io_util import (
-    save_features_to_file,
-    untar_input_file,
-    get_output_file_name,
-)
-from models import VisXPFeatureExtractionOutput, VisXPFeatureExtractionInput
-from provenance import generate_full_provenance_chain
+from io_util import untar_input_file
+from models import VisXPFeatureExtractionInput, Provenance
+
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +25,15 @@ def apply_model(batch, model, device):
     return result
 
 
-def extract_features(
+def run(
     feature_extraction_input: VisXPFeatureExtractionInput,
     model_path: str,
     model_config_file: str,
-    output_path: str,
-) -> VisXPFeatureExtractionOutput:
+    output_file_path: str,
+) -> Optional[Provenance]:
     start_time = time()
 
-    logger.warning(f"Extracting features into {output_path}")
+    logger.info(f"Extracting features from: {feature_extraction_input.input_file_path}")
 
     # Step 1: set up GPU processing if available
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -81,28 +78,38 @@ def extract_features(
 
     # concatenate results and save to file
     result = torch.cat(result_list)
-    destination = os.path.join(output_path, get_output_file_name(source_id))
-    file_saved = save_features_to_file(result, destination=destination)
+    file_saved = _save_features_to_file(result, output_file_path)
 
     if not file_saved:
-        return VisXPFeatureExtractionOutput(
-            500,
-            f"Could not save extracted features to {destination}",
-            destination,
-            None,
-        )
+        logger.error(f"Could not save extracted features to {output_file_path}")
+        return None
 
-    # generate provenance, since all went well
-    provenance = generate_full_provenance_chain(
-        start_time=start_time,
-        input_path=input_file_path,
-        provenance_chain=[],
-        output_path=destination,
-    )
-    return VisXPFeatureExtractionOutput(
-        200, "Succesfully extracted features", destination, provenance
+    return Provenance(
+        activity_name="VisXP feature extraction",
+        activity_description=("Extract features vectors in .pt file"),
+        start_time_unix=start_time,
+        processing_time_ms=time() - start_time,
+        input_data={"input_file_path": input_file_path},
+        output_data={"output_file_path": output_file_path},
     )
 
     # Binarize resulting feature matrix
     # Use GPU for processing
     # Store binarized feature matrix to file
+
+
+# saves the features to a local file, so it can be uploaded to S3
+def _save_features_to_file(features: torch.Tensor, output_file_path: str) -> bool:
+    logger.info(f"Saving features to {output_file_path}")
+    try:
+        parent_dir = str(Path(output_file_path).parent)
+        logger.info(f"Checking if parent dir (source_id) exists: {parent_dir}")
+        if not os.path.isdir(parent_dir):
+            logger.info("Parent dir, did not exist, creating it now")
+            os.makedirs(parent_dir)
+        with open(output_file_path, "wb") as f:
+            torch.save(obj=features, f=f)
+            return True
+    except Exception:
+        logger.exception("Failed to save features to file")
+    return False

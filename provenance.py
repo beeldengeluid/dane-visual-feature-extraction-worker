@@ -1,14 +1,16 @@
+import json
 import logging
-import os
 from time import time
 from typing import List
-from models import Provenance
+
+from io_util import get_base_output_dir, get_output_file_path
+from models import Provenance, OutputType
 
 
 logger = logging.getLogger(__name__)
 SOFTWARE_PROVENANCE_FILE = "/software_provenance.txt"
 DANE_WORKER_ID = (
-    "dane-video-segmentation-worker"  # NOTE: should be same as GH repo name!
+    "dane-visual-feature-extraction-worker"  # NOTE: should be same as GH repo name!
 )
 PROVENANCE_FILE = "provenance.json"
 
@@ -18,7 +20,7 @@ def generate_full_provenance_chain(
     start_time: float,
     input_path: str,
     provenance_chain: List[Provenance],
-    output_path: str,
+    source_id: str,
 ) -> Provenance:
     provenance = Provenance(
         activity_name="VisXP feature extraction",
@@ -32,12 +34,12 @@ def generate_full_provenance_chain(
         steps=provenance_chain,
         software_version=obtain_software_versions([DANE_WORKER_ID]),
         input_data={"input_path": input_path},
-        output_data={"output_path": output_path},
+        output_data={"output_path": get_base_output_dir(source_id)},
     )
 
-    prov_file = os.path.splitext(output_path)[0] + ".provenance"
-    with open(prov_file, "w+") as f:
-        f.write(str(provenance.to_json()))
+    prov_file = get_output_file_path(source_id, OutputType.PROVENANCE)
+    with open(prov_file, "w", encoding="utf-8") as f:
+        json.dump(provenance.to_json(), f, ensure_ascii=False, indent=4)
         logger.info(f"Wrote provenance info to file: {prov_file}")
     return provenance
 

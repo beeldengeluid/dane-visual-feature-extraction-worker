@@ -3,15 +3,14 @@ import os
 from pathlib import Path
 import tarfile
 from time import time
-import torch
+from typing import Dict
 
 from dane import Document
 from dane.config import cfg
 from dane.s3_util import S3Store, parse_s3_uri, validate_s3_uri
 from models import (
-    CallbackResponse,
+    OutputType,
     Provenance,
-    VisXPFeatureExtractionOutput,
     VisXPFeatureExtractionInput,
 )
 
@@ -23,60 +22,16 @@ INPUT_FILE_BASE_NAME = "visxp_prep"
 INPUT_FILE_EXTENSION = ".tar.gz"
 
 
-# assesses the output and makes sure input & output is handled properly
-def apply_desired_io_on_output(
-    feature_extraction_input: VisXPFeatureExtractionInput,
-    proc_result: VisXPFeatureExtractionOutput,
-    delete_input_on_completion: bool,
-    delete_output_on_completetion: bool,
-    transfer_output_on_completion: bool,
-) -> CallbackResponse:
-    # step 2: raise exception on failure
-    if proc_result.state != 200:
-        logger.error(f"Could not process the input properly: {proc_result.message}")
-        # something went wrong inside the VisXP work processor, return that response here
-        return {"state": proc_result.state, "message": proc_result.message}
-
-    # step 3: process returned successfully, generate the output
-    source_id = feature_extraction_input.source_id
-    output_path = get_base_output_dir(source_id)  # TODO actually make sure this works
-
-    # step 4: transfer the output to S3 (if configured so)
-    transfer_success = True
-    if transfer_output_on_completion:
-        transfer_success = transfer_output(source_id)
-
-    # failure of transfer, impedes the workflow, so return error
-    if not transfer_success:
-        return {
-            "state": 500,
-            "message": "Failed to transfer output to S3",
-        }
-
-    # clear the output files (if configured so)
-    if delete_output_on_completetion:
-        delete_success = delete_local_output(source_id)
-        if not delete_success:
-            # NOTE: just a warning for now, but one to keep an eye out for
-            logger.warning(f"Could not delete output files: {output_path}")
-
-    if delete_input_on_completion:
-        logger.warning("Deletion of input not supported yet")
-
-    return {
-        "state": 200,
-        "message": "Successfully generated VisXP features to be used for similarity search",
-    }
-
-
-# NOTE: only use for test run & unit test with input that points to tar file!
-# e.g. ./data/input-files/visxp_prep__testob.tar.gz
-def get_source_id_from_tar(input_path: str) -> str:
-    fn = os.path.basename(input_path)
-    tmp = fn.split("__")
-    source_id = tmp[1][:-len(INPUT_FILE_EXTENSION)]
-    logger.info(f"Using source_id: {source_id}")
-    return source_id
+# for each OutputType a subdir is created inside the base output dir
+def generate_output_dirs(source_id: str) -> Dict[str, str]:
+    base_output_dir = get_base_output_dir(source_id)
+    output_dirs = {}
+    for output_type in OutputType:
+        output_dir = os.path.join(base_output_dir, output_type.value)
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
+        output_dirs[output_type.value] = output_dir
+    return output_dirs
 
 
 # below this dir each processing module will put its output data in a subfolder
@@ -87,10 +42,24 @@ def get_base_output_dir(source_id: str = "") -> str:
     return os.path.join(*path_elements)
 
 
+def get_output_file_name(source_id: str, output_type: OutputType) -> str:
+    output_file_name = ""
+    match output_type:
+        case OutputType.FEATURES:
+            output_file_name = f"{OUTPUT_FILE_BASE_NAME}__{source_id}.pt"
+        case OutputType.PROVENANCE:
+            output_file_name = "provenance.json"
+    return output_file_name
+
+
 # output file name of the final .pt file that will be uploaded to S3
 # TODO decide whether to tar.gz this as well
-def get_output_file_name(source_id: str) -> str:
-    return f"{OUTPUT_FILE_BASE_NAME}__{source_id}.pt"
+def get_output_file_path(source_id: str, output_type: OutputType) -> str:
+    return os.path.join(
+        get_base_output_dir(source_id),
+        output_type.value,
+        get_output_file_name(source_id, output_type),
+    )
 
 
 # e.g. s3://<bucket>/assets/<source_id>
@@ -99,8 +68,21 @@ def get_s3_base_uri(source_id: str) -> str:
 
 
 # e.g. s3://<bucket>/assets/<source_id>/visxp_features__<source_id>.pt
-def get_s3_output_file_uri(source_id: str) -> str:
-    return f"{get_s3_base_uri(source_id)}/{get_output_file_name(source_id)}"
+# TODO adapt this
+def get_s3_output_file_uri(source_id: str, output_type: OutputType) -> str:
+    return (
+        f"{get_s3_base_uri(source_id)}/{get_output_file_name(source_id, output_type)}"
+    )
+
+
+# NOTE: only use for test run & unit test with input that points to tar file!
+# e.g. ./data/input-files/visxp_prep__testob.tar.gz
+def get_source_id_from_tar(input_path: str) -> str:
+    fn = os.path.basename(input_path)
+    tmp = fn.split("__")
+    source_id = tmp[1][: -len(INPUT_FILE_EXTENSION)]
+    logger.info(f"Using source_id: {source_id}")
+    return source_id
 
 
 # e.g. s3://<bucket>/assets/<source_id>/visxp_prep__<source_id>.tar.gz
@@ -111,24 +93,13 @@ def source_id_from_s3_uri(s3_uri: str) -> str:
     return f"{source_id}"
 
 
-# saves the features to a local file, so it can be uploaded to S3
-def save_features_to_file(features: torch.Tensor, destination: str) -> bool:
-    try:
-        with open(destination, "wb") as f:
-            torch.save(obj=features, f=f)
-            return True
-    except Exception:
-        logger.exception("Failed to save features to file")
-    return False
-
-
 def delete_local_output(source_id: str) -> bool:
     # TODO: implement
     return True
 
 
 def transfer_output(output_dir: str) -> bool:
-    logger.info(f"Transferring {output_dir} to S3")
+    logger.warning(f"Transferring {output_dir} to S3 requires implementation")
     # TODO: implement
     return True
 
