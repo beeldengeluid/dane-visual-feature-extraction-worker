@@ -1,15 +1,15 @@
 import logging
-from time import time
-
 from nn_models import load_model_from_file
-import sys
-import torch
 import os
 from pathlib import Path
+from time import time
+import torch
+from typing import Optional
+
 from data_handling import VisXPData
-from models import VisXPFeatureExtractionOutput
-from provenance import generate_full_provenance_chain
-from output_util import get_source_id, export_features
+from io_util import untar_input_file
+from models import VisXPFeatureExtractionInput, Provenance
+
 
 logger = logging.getLogger(__name__)
 
@@ -25,25 +25,41 @@ def apply_model(batch, model, device):
     return result
 
 
-def extract_features(
-    input_path: str, model_path: str, model_config_file: str, output_path: str
-) -> VisXPFeatureExtractionOutput:
+def run(
+    feature_extraction_input: VisXPFeatureExtractionInput,
+    model_path: str,
+    model_config_file: str,
+    output_file_path: str,
+) -> Optional[Provenance]:
     start_time = time()
+
+    logger.info(f"Extracting features from: {feature_extraction_input.input_file_path}")
 
     # Step 1: set up GPU processing if available
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     logger.info(f"Device is: {device}")
 
+    input_file_path = feature_extraction_input.input_file_path
+    source_id = feature_extraction_input.source_id
+
     # Step 1: this is the "processing ID" if you will
-    source_id = get_source_id(input_path)
     logger.info(f"Extracting features for: {source_id}.")
 
-    # Step 2: Load spectograms + keyframes from file & preprocess
+    # Step 2: check the type of input (tar.gz vs a directory)
+    if input_file_path.find(".tar.gz") != -1:
+        logger.info("Input is an archive, uncompressing it")
+        untar_input_file(input_file_path)  # extracts contents in same dir
+        input_file_path = str(
+            Path(input_file_path).parent
+        )  # change the input path to the parent dir
+        logger.info(f"Changed input_file_path to: {input_file_path}")
+
+    # Step 3: Load spectograms + keyframes from file & preprocess
     dataset = VisXPData(
-        Path(input_path), model_config_file=model_config_file, device=device
+        Path(input_file_path), model_config_file=model_config_file, device=device
     )
 
-    # Step 3: Load model from file
+    # Step 4: Load model from file
     model = load_model_from_file(
         checkpoint_file=model_path,
         config_file=model_config_file,
@@ -52,25 +68,29 @@ def extract_features(
     # Switch model mode: in training mode, model layers behave differently!
     model.eval()
 
-    # Step 4: Apply model to data
+    # Step 5: Apply model to data
     logger.info(f"Going to extract features for {dataset.__len__()} items. ")
 
     result_list = []
     for i, batch in enumerate(dataset.batches(batch_size=256)):
         batch_result = apply_model(batch=batch, model=model, device=device)
         result_list.append(batch_result)
-    result = torch.cat(result_list)
 
-    destination = os.path.join(output_path, f"{source_id}.pt")
-    export_features(result, destination=destination)
-    provenance = generate_full_provenance_chain(
-        start_time=start_time,
-        input_path=input_path,
-        provenance_chain=[],
-        output_path=destination,
-    )
-    return VisXPFeatureExtractionOutput(
-        200, "Succesfully extracted features", provenance
+    # concatenate results and save to file
+    result = torch.cat(result_list)
+    file_saved = _save_features_to_file(result, output_file_path)
+
+    if not file_saved:
+        logger.error(f"Could not save extracted features to {output_file_path}")
+        return None
+
+    return Provenance(
+        activity_name="VisXP feature extraction",
+        activity_description=("Extract features vectors in .pt file"),
+        start_time_unix=start_time,
+        processing_time_ms=time() - start_time,
+        input_data={"input_file_path": input_file_path},
+        output_data={"output_file_path": output_file_path},
     )
 
     # Binarize resulting feature matrix
@@ -78,21 +98,18 @@ def extract_features(
     # Store binarized feature matrix to file
 
 
-if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        stream=sys.stdout,  # configure a stream handler only for now (single handler)
-        format="%(asctime)s|%(levelname)s|%(process)d|%(module)s"
-        "|%(funcName)s|%(lineno)d|%(message)s",
-    )
-
-    extract_features(
-        input_path="data/visxp_prep/ZQWO_DYnq5Q_000000",
-        output_path="data/visxp_features",
-        model_config_file="models/model_config.yml",
-        model_path="models/checkpoint.tar",
-    )
-
-
-def example_function():
-    return 0 == 0
+# saves the features to a local file, so it can be uploaded to S3
+def _save_features_to_file(features: torch.Tensor, output_file_path: str) -> bool:
+    logger.info(f"Saving features to {output_file_path}")
+    try:
+        parent_dir = str(Path(output_file_path).parent)
+        logger.info(f"Checking if parent dir (source_id) exists: {parent_dir}")
+        if not os.path.isdir(parent_dir):
+            logger.info("Parent dir, did not exist, creating it now")
+            os.makedirs(parent_dir)
+        with open(output_file_path, "wb") as f:
+            torch.save(obj=features, f=f)
+            return True
+    except Exception:
+        logger.exception("Failed to save features to file")
+    return False

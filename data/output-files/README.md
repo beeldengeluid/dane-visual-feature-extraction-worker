@@ -1,0 +1,1 @@
+The default config.yml will use this dir as a base output dir

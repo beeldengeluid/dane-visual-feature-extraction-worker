@@ -1,19 +1,33 @@
-import feature_extraction
 import os
 import torch
 
+import feature_extraction
+from io_util import get_output_file_path
+from models import OutputType, VisXPFeatureExtractionInput
+
+
+UNIT_TEST_SOURCE_ID = "test_source_id"
+UNIT_TEST_INPUT_PATH = f"./data/input-files/{UNIT_TEST_SOURCE_ID}"
+
 
 def test_extract_features():
-    feature_extraction.extract_features(
-        input_path="tests/data",
+    feature_file = get_output_file_path(UNIT_TEST_SOURCE_ID, OutputType.FEATURES)
+    print(f"FEATURE FILE: {feature_file}")
+    feature_extraction.run(
+        feature_extraction_input=VisXPFeatureExtractionInput(
+            200,
+            f"Thank you for unit testing: let's process {UNIT_TEST_INPUT_PATH}",
+            UNIT_TEST_SOURCE_ID,
+            UNIT_TEST_INPUT_PATH,
+            None,  # no provenance needed in test
+        ),
         model_path="model/checkpoint.tar",
         model_config_file="model/model_config.yml",
-        output_path="tests/data/",
+        output_file_path=feature_file,
     )
-    feature_file = "tests/data/data.pt"
     with open(feature_file, "rb") as f:
         features = torch.load(f)
-    with open("tests/data/demo_concat_feat.pt", "rb") as f:
+    with open("./data/demo_concat_feat.pt", "rb") as f:
         example_features = torch.load(f)
 
     # make sure that we're comparing the proper vectors
@@ -26,5 +40,5 @@ def test_extract_features():
     os.remove(feature_file)
 
 
-def test_example_function():
-    assert feature_extraction.example_function()
+def test_dummy():
+    assert 1 == 1
