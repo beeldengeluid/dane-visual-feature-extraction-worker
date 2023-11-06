@@ -217,10 +217,8 @@ def delete_input_file(input_file: str, source_id: str, actually_delete: bool) ->
     return True  # return True even if empty dirs were not removed
 
 
-def obtain_input_file(handler, doc: Document) -> VisXPFeatureExtractionInput:
-    # first fetch and validate the obtained S3 URI
-    # TODO make sure this is a valid S3 URI
-    s3_uri = _fetch_visxp_prep_s3_uri(handler, doc)
+def obtain_input_file(s3_uri: str) -> VisXPFeatureExtractionInput:
+
     if not validate_s3_uri(s3_uri):
         return VisXPFeatureExtractionInput(500, f"Invalid S3 URI: {s3_uri}")
 
@@ -231,9 +229,11 @@ def obtain_input_file(handler, doc: Document) -> VisXPFeatureExtractionInput:
     # TODO download the content into get_download_dir()
     s3 = S3Store(cfg.OUTPUT.S3_ENDPOINT_URL)
     bucket, object_name = parse_s3_uri(s3_uri)
+    logger.info(f"OBJECT NAME: {object_name}")
     input_file_path = os.path.join(
         get_download_dir(),
-        os.path.basename(object_name),  # source_id is part of the object_name
+        source_id,
+        os.path.basename(object_name),  # i.e. visxp_prep__<source_id>.tar.gz
     )
     success = s3.download_file(bucket, object_name, output_folder)
     if success:
@@ -258,7 +258,7 @@ def obtain_input_file(handler, doc: Document) -> VisXPFeatureExtractionInput:
     return VisXPFeatureExtractionInput(500, f"Failed to download: {s3_uri}")
 
 
-def _fetch_visxp_prep_s3_uri(handler, doc: Document) -> str:
+def fetch_visxp_prep_s3_uri(handler, doc: Document) -> str:
     logger.info("checking download worker output")
     possibles = handler.searchResult(doc._id, DANE_VISXP_PREP_TASK_KEY)
     logger.info(possibles)

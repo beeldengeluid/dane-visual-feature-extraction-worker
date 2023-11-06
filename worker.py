@@ -7,10 +7,12 @@ from base_util import validate_config
 from dane import Document, Task, Result
 from dane.base_classes import base_worker
 from dane.config import cfg
+from dane.s3_util import validate_s3_uri
 from models import CallbackResponse, OutputType, Provenance, VisXPFeatureExtractionInput
 from io_util import (
     generate_output_dirs,
     get_source_id_from_tar,
+    fetch_visxp_prep_s3_uri,
     obtain_input_file,
     get_base_output_dir,
     get_download_dir,
@@ -35,13 +37,18 @@ logger = logging.getLogger()
 # triggered by running: python worker.py --run-test-file
 def process_configured_input_file() -> bool:
     logger.info("Triggered processing of configured VISXP_EXTRACT.TEST_INPUT_PATH")
-    feature_extraction_input = VisXPFeatureExtractionInput(
-        200,
-        f"Thank you for running us: let's test {cfg.VISXP_EXTRACT.TEST_INPUT_PATH}",
-        get_source_id_from_tar(cfg.VISXP_EXTRACT.TEST_INPUT_PATH),
-        cfg.VISXP_EXTRACT.TEST_INPUT_PATH,
-        None,  # no provenance needed in test
-    )
+
+    # S3 URI is also allowed for VISXP_EXTRACT.TEST_INPUT_PATH
+    if validate_s3_uri(cfg.VISXP_EXTRACT.TEST_INPUT_PATH):
+        feature_extraction_input = obtain_input_file(cfg.VISXP_EXTRACT.TEST_INPUT_PATH)
+    else:
+        feature_extraction_input = VisXPFeatureExtractionInput(
+            200,
+            f"Thank you for running us: let's test {cfg.VISXP_EXTRACT.TEST_INPUT_PATH}",
+            get_source_id_from_tar(cfg.VISXP_EXTRACT.TEST_INPUT_PATH),
+            cfg.VISXP_EXTRACT.TEST_INPUT_PATH,
+            None,  # no provenance needed in test
+        )
 
     # first generate the output dirs
     generate_output_dirs(feature_extraction_input.source_id)
@@ -178,9 +185,16 @@ class VisualFeatureExtractionWorker(base_worker):
             output_data={},
         )
 
-        # obtain the input file
-        # TODO make sure to download the output from S3
-        feature_extraction_input = obtain_input_file(self.handler, doc)
+        # fetch s3 uri of visxp_prep data:
+        s3_uri = fetch_visxp_prep_s3_uri(self.handler, doc)
+        if not s3_uri:
+            return {
+                "state": 404,
+                "message": "Could not find VISXP_PREP data",
+            }
+
+        # download the VISXP_PREP data via the S3 URI
+        feature_extraction_input = obtain_input_file(s3_uri)
         if not feature_extraction_input.state == 200:
             return {
                 "state": feature_extraction_input.state,
