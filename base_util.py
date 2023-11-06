@@ -118,7 +118,7 @@ def check_setting(setting: Any, t: type, optional=False) -> bool:
 
 def __check_dane_dependencies(deps: Any) -> bool:
     deps_to_check: list = deps if type(deps) is list else []
-    deps_allowed = ["DOWNLOAD", "BG_DOWNLOAD"]
+    deps_allowed = ["VISXP_PREP"]
     return any(dep in deps_allowed for dep in deps_to_check)
 
 
