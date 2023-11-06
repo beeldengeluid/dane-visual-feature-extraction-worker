@@ -45,4 +45,4 @@ OUTPUT:
     S3_BUCKET: beng-daan-visxp  # bucket reserved for 1 type of output
     S3_FOLDER_IN_BUCKET: assets  # folder within the bucket
 DANE_DEPENDENCIES:
-    - DOWNLOAD
+    - VISXP_PREP
