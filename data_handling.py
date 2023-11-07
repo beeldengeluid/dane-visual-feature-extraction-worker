@@ -93,8 +93,15 @@ class VisXPData(Dataset):
             audio = self.audio_transform(audio)
         return audio
 
-    def __get_keyframe__(self, index):
-        frame = torchvision.io.read_image(str(self.frame_paths[index])).to(self.device)
+    def __get_keyframe__(self, index: int):
+        try:
+            image_file_path = str(self.frame_paths[index])
+        except IndexError:
+            logger.exception(
+                f"{index} out of range (num frames = {len(self.frame_paths)})"
+            )
+            return None
+        frame = torchvision.io.read_image(image_file_path).to(self.device)
         frame = self.visual_transform(frame / 255.0)
         return frame
 

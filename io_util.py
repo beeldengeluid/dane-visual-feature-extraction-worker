@@ -99,11 +99,14 @@ def get_source_id_from_tar(input_path: str) -> str:
 
 
 # e.g. s3://<bucket>/assets/<source_id>/visxp_prep__<source_id>.tar.gz
-# TODO add validation of 1st VisXP worker's S3 URI
+# s3://your-bucket/assets/2101608170158176431__NOS_JOURNAAL_-WON01513227/visxp_prep__2101608170158176431__NOS_JOURNAAL_-WON01513227.tar.gz
 def source_id_from_s3_uri(s3_uri: str) -> str:
-    fn = os.path.basename(s3_uri)
-    source_id = fn[: -len(".tar.gz")].split("__")[1]
-    return f"{source_id}"
+    fn = os.path.basename(
+        s3_uri
+    )  # e.g. visxp_prep__2101608170158176431__NOS_JOURNAAL_-WON01513227.tar.gz
+    fn = fn.replace(".tar.gz", "")
+    source_id = "__".join(fn.split("__")[1:])  # remove the "visxp_prep__" bit
+    return source_id
 
 
 def delete_local_output(source_id: str) -> bool:
