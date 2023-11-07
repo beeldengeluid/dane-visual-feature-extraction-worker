@@ -118,13 +118,6 @@ class VisualFeatureExtractionWorker(base_worker):
             "#.VISXP_EXTRACT"  # ['Video.VISXP_PREP', 'Sound.VISXP_PREP']
         )
         self.__depends_on = self.DANE_DEPENDENCIES  # TODO make this part of DANE lib?
-        # NOTE: cannot be automaticcally filled, because no git client is present
-        self.generator = {
-            "id": "dane-visual-feature-extraction-worker",
-            "type": "Software",
-            "name": "VISXP_EXTRACT",
-            "homepage": "https://github.com/beeldengeluid/dane-visual-feature-extraction-worker",
-        }
 
         if not self.UNIT_TESTING:
             logger.warning("Need to initialize the VISXP_EXTRACT service")
@@ -137,6 +130,16 @@ class VisualFeatureExtractionWorker(base_worker):
             auto_connect=not self.UNIT_TESTING,
             no_api=self.UNIT_TESTING,
         )
+
+        # NOTE: cannot be automaticcally filled, because no git client is present
+        if not self.generator:
+            logger.info("Generator was None, creating it now")
+            self.generator = {
+                "id": "dane-visual-feature-extraction-worker",
+                "type": "Software",
+                "name": "VISXP_EXTRACT",
+                "homepage": "https://github.com/beeldengeluid/dane-visual-feature-extraction-worker",
+            }
 
     """----------------------------------INIT VALIDATION FUNCTIONS ---------------------------------"""
 
