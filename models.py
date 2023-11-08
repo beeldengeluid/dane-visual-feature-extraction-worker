@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, TypedDict
 
@@ -26,9 +26,10 @@ class Provenance:
     output_data: dict[str, str]
     parameters: Optional[dict] = None
     software_version: Optional[dict[str, str]] = None
-    steps: Optional[list["Provenance"]] = None  # a list of subactivity provenance items
+    steps: Optional[list["Provenance"]] = field(default_factory=list["Provenance"])
 
     def to_json(self):
+        processing_steps = self.steps if self.steps else []
         return {
             "activity_name": self.activity_name,
             "activity_description": self.activity_description,
@@ -38,7 +39,7 @@ class Provenance:
             "software_version": self.software_version,  # .to_json
             "input_data": self.input_data,  # .to_json
             "output_data": self.output_data,  # .to_json
-            "steps": [step.to_json for step in self.steps],
+            "steps": [step.to_json() for step in processing_steps],
         }
 
 
