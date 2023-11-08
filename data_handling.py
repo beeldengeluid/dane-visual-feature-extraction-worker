@@ -11,22 +11,38 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+KEYFRAME_INPUT_DIR = "keyframes"
+SPECTOGRAM_INPUT_DIR = "spectograms"
+
+
 class VisXPData(Dataset):
     def __init__(
         self,
         datapath: Path,
         model_config_file: str,
         device: torch.device,
+        expected_sample_rate=-1,  # 24000 | 48000
         check_spec_dim=False,
     ):
         if type(datapath) is not Path:
             datapath = Path(datapath)
         # Sorting not really necessary, but is a (poor) way of making sure specs and frames are aligned..
-        self.spec_paths = sorted(list(datapath.glob("spectograms/*.npz")))
-        self.frame_paths = sorted(list(datapath.glob("keyframes/*.jpg")))
+        self.frame_paths = sorted(list(datapath.glob(f"{KEYFRAME_INPUT_DIR}/*.jpg")))
+
+        # first determine if/which spectogram files to select
+        spectogram_suffix = (
+            "" if expected_sample_rate == -1 else f"_{expected_sample_rate}"
+        )
+        self.spec_paths = sorted(
+            list(datapath.glob(f"{SPECTOGRAM_INPUT_DIR}/*{spectogram_suffix}.npz"))
+        )  # one samplerate is used
         self.device = device
         self.set_config(model_config_file=model_config_file)
         self.list_of_shots = self.ListOfShots(datapath)
+
+        # NOTE use the keyframe list to determine __len__, since there can be
+        # multiple spectograms per keyframe
+        self.data_set_size = len(self.frame_paths)
         if check_spec_dim:
             all_ok = self.check_spec_dim()
             if all_ok:
@@ -70,7 +86,7 @@ class VisXPData(Dataset):
             )
 
     def __len__(self):
-        return len(self.spec_paths)
+        return self.data_set_size
 
     def __getitem__(self, index):
         item_dict = dict()

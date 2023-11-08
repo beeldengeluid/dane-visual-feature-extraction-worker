@@ -32,6 +32,7 @@ VISXP_EXTRACT:
     MODEL_BASE_MOUNT: /model
     MODEL_CHECKPOINT_FILE: checkpoint.tar  # should be in MODEL_BASE_MOUNT
     MODEL_CONFIG_FILE: model_config.yml  # should be in MODEL_BASE_MOUNT
+    EXPECTED_SPECTOGRAM_SAMPLERATE_HZ: 24000  # -1 indicates undefined otherwise: 24000 | 48000
     TEST_INPUT_PATH: /data/input-files/testob/visxp_prep__testob.tar.gz
 INPUT:
     S3_ENDPOINT_URL: https://s3-host

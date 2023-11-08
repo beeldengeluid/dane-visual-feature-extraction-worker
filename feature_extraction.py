@@ -61,9 +61,11 @@ def run(
 
     # Step 4: Load spectograms + keyframes from file & preprocess
     dataset = VisXPData(
-        Path(input_file_path),
+        datapath=Path(input_file_path),
         model_config_file=os.path.join(model_base_mount, model_config_file),
         device=device,
+        expected_sample_rate=feature_extraction_input.expected_sample_rate,
+        check_spec_dim=False,
     )
 
     # Step 5: Load model from file
