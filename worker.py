@@ -47,6 +47,7 @@ def process_configured_input_file() -> bool:
             f"Thank you for running us: let's test {cfg.VISXP_EXTRACT.TEST_INPUT_PATH}",
             get_source_id_from_tar(cfg.VISXP_EXTRACT.TEST_INPUT_PATH),
             cfg.VISXP_EXTRACT.TEST_INPUT_PATH,
+            cfg.VISXP_EXTRACT.EXPECTED_SPECTOGRAM_SAMPLERATE_HZ,  # make sure this matches VISXP_PREP config
             None,  # no provenance needed in test
         )
 

@@ -48,6 +48,7 @@ class VisXPFeatureExtractionInput:
     message: str  # error/sucess message
     source_id: str = ""  # <program ID>__<carrier ID>
     input_file_path: str = ""  # where the visxp_prep.tar.gz was downloaded
+    expected_sample_rate: int = -1  # VISXP_EXTRACT.EXPECTED_SPECTOGRAM_SAMPLERATE_HZ
     provenance: Optional[Provenance] = None  # mostly: how long did it take to download
 
 

@@ -32,16 +32,17 @@ VISXP_EXTRACT:
     MODEL_BASE_MOUNT: /model
     MODEL_CHECKPOINT_FILE: checkpoint.tar  # should be in MODEL_BASE_MOUNT
     MODEL_CONFIG_FILE: model_config.yml  # should be in MODEL_BASE_MOUNT
+    EXPECTED_SPECTOGRAM_SAMPLERATE_HZ: 24000  # -1 indicates undefined otherwise: 24000 | 48000
     TEST_INPUT_PATH: /data/input-files/testob/visxp_prep__testob.tar.gz
 INPUT:
-    S3_ENDPOINT_URL: https://s3-host
+    S3_ENDPOINT_URL: https://s3.eu-west-1.amazonaws.com/
     MODEL_CHECKPOINT_S3_URI: s3://beng-daan-visxp/model/checkpoint.tar
     MODEL_CONFIG_S3_URI: s3://beng-daan-visxp/model/model_config.yml
     DELETE_ON_COMPLETION: False
 OUTPUT:
     DELETE_ON_COMPLETION: True
     TRANSFER_ON_COMPLETION: True
-    S3_ENDPOINT_URL: https://s3-host
+    S3_ENDPOINT_URL: https://s3.eu-west-1.amazonaws.com/
     S3_BUCKET: beng-daan-visxp  # bucket reserved for 1 type of output
     S3_FOLDER_IN_BUCKET: assets  # folder within the bucket
 DANE_DEPENDENCIES:
