@@ -45,7 +45,7 @@ def process_configured_input_file() -> bool:
         if cfg.VISXP_EXTRACT.TEST_INPUT_PATH.find(".tar.gz") != -1:
             source_id = get_source_id_from_tar(cfg.VISXP_EXTRACT.TEST_INPUT_PATH)
         else:
-            source_id = cfg.VISXP_EXTRACT.TEST_INPUT_PATH.split('/')[-1]
+            source_id = cfg.VISXP_EXTRACT.TEST_INPUT_PATH.split("/")[-1]
 
         feature_extraction_input = VisXPFeatureExtractionInput(
             200,

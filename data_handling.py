@@ -32,9 +32,9 @@ class VisXPData(Dataset):
 
         self.paths: DefaultDict[int, dict] = defaultdict(dict)
         for p in datapath.glob(f"{KEYFRAME_INPUT_DIR}/*.jpg"):
-            self.paths[int(p.stem)].update({'frame': p})
+            self.paths[int(p.stem)].update({"frame": p})
         for p in datapath.glob(f"{SPECTOGRAM_INPUT_DIR}/*_{self.framerate}.npz"):
-            self.paths[int(p.stem.split('_')[0])].update({'spec': p})
+            self.paths[int(p.stem.split("_")[0])].update({"spec": p})
         self.timestamps = list(self.paths.keys())
         self.device = device
         self.list_of_shots = self.ListOfShots(datapath)
@@ -75,20 +75,22 @@ class VisXPData(Dataset):
 
     def __get_spec__(self, timestamp: int, transform=True):
         try:
-            data = np.load(str(self.paths[timestamp]['spec']), allow_pickle=True)
+            data = np.load(str(self.paths[timestamp]["spec"]), allow_pickle=True)
             audio = data["arr_0"].item()["audio"]
             audio = torch.tensor(audio, device=self.device)
             if transform:
                 audio = self.audio_transform(audio)
         except KeyError:
-            logger.info(f"No spectogram exists for timestamp {timestamp}"
-                        f" at samplerate {self.framerate}.")
+            logger.info(
+                f"No spectogram exists for timestamp {timestamp}"
+                f" at samplerate {self.framerate}."
+            )
             audio = torch.zeros(size=self.dim_a)
         return audio
 
     def __get_keyframe__(self, timestamp: int):
         try:
-            image_file_path = str(self.paths[timestamp]['frame'])
+            image_file_path = str(self.paths[timestamp]["frame"])
             frame = torchvision.io.read_image(image_file_path).to(self.device)
             frame = self.visual_transform(frame / 255.0)
         except KeyError:

@@ -65,7 +65,7 @@ def run(
     dataset = VisXPData(
         datapath=Path(input_file_path),
         model_config_file=os.path.join(model_base_mount, model_config_file),
-        device=device
+        device=device,
     )
 
     # Step 5: Load model from file
