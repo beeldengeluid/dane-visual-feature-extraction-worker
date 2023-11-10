@@ -36,8 +36,6 @@ class VisXPData(Dataset):
         for p in datapath.glob(f"{SPECTOGRAM_INPUT_DIR}/*_{self.framerate}.npz"):
             self.paths[int(p.stem.split('_')[0])].update({'spec': p})
         self.timestamps = list(self.paths.keys())
-        import pdb
-        pdb.set_trace()
         self.device = device
         self.list_of_shots = self.ListOfShots(datapath)
 
