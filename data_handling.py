@@ -26,18 +26,20 @@ class VisXPData(Dataset):
     ):
         if type(datapath) is not Path:
             datapath = Path(datapath)
+
+        self.set_config(model_config_file=model_config_file)
+
         # Sorting not really necessary, but is a (poor) way of making sure specs and frames are aligned..
         self.frame_paths = sorted(list(datapath.glob(f"{KEYFRAME_INPUT_DIR}/*.jpg")))
 
         # first determine if/which spectogram files to select
-        spectogram_suffix = (
-            "" if expected_sample_rate == -1 else f"_{expected_sample_rate}"
-        )
+        spectogram_suffix = f"_{self.dim_a}"
+        
         self.spec_paths = sorted(
             list(datapath.glob(f"{SPECTOGRAM_INPUT_DIR}/*{spectogram_suffix}.npz"))
         )  # one samplerate is used
         self.device = device
-        self.set_config(model_config_file=model_config_file)
+        
         self.list_of_shots = self.ListOfShots(datapath)
 
         # NOTE use the keyframe list to determine __len__, since there can be
