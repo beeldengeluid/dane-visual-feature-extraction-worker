@@ -5,8 +5,9 @@ import torchvision.transforms as T  # type: ignore
 import numpy as np
 from pathlib import Path
 from yacs.config import CfgNode as CN
-import random
 import logging
+from collections import defaultdict
+from typing import DefaultDict
 
 logger = logging.getLogger(__name__)
 
@@ -29,44 +30,16 @@ class VisXPData(Dataset):
 
         self.set_config(model_config_file=model_config_file)
 
-        # Sorting not really necessary, but is a (poor) way of making sure specs and frames are aligned..
-        self.frame_paths = sorted(list(datapath.glob(f"{KEYFRAME_INPUT_DIR}/*.jpg")))
-
-        # first determine if/which spectogram files to select
-        spectogram_suffix = f"_{self.dim_a}"
-        
-        self.spec_paths = sorted(
-            list(datapath.glob(f"{SPECTOGRAM_INPUT_DIR}/*{spectogram_suffix}.npz"))
-        )  # one samplerate is used
+        self.paths: DefaultDict[int, dict] = defaultdict(dict)
+        for p in datapath.glob(f"{KEYFRAME_INPUT_DIR}/*.jpg"):
+            self.paths[int(p.stem)].update({'frame': p})
+        for p in datapath.glob(f"{SPECTOGRAM_INPUT_DIR}/*_{self.framerate}.npz"):
+            self.paths[int(p.stem.split('_')[0])].update({'spec': p})
+        self.timestamps = list(self.paths.keys())
+        import pdb
+        pdb.set_trace()
         self.device = device
-        
         self.list_of_shots = self.ListOfShots(datapath)
-
-        # NOTE use the keyframe list to determine __len__, since there can be
-        # multiple spectograms per keyframe
-        self.data_set_size = len(self.frame_paths)
-        if check_spec_dim:
-            all_ok = self.check_spec_dim()
-            if all_ok:
-                logger.info(
-                    "Sampled pectogram dimensionalities match specification"
-                    f" in model config({self.dim_a})"
-                )
-
-    def check_spec_dim(self, sample_size=5):
-        all_ok = True
-        for index in random.sample(range(len(self.spec_paths)), sample_size):
-            spec = self.__get_spec__(index=index, transform=False)
-            try:
-                assert spec.shape == self.dim_a
-            except AssertionError:
-                logger.info(
-                    f"Spectogram dimensionality ({spec.shape})"
-                    f" does not match specification in "
-                    f"model config({self.cfg.SPECTOGRAM.DIMENSIONALITY})"
-                )
-                all_ok = False
-        return all_ok
 
     def set_config(self, model_config_file: str):
         with open(model_config_file, "r") as f:
@@ -78,49 +51,51 @@ class VisXPData(Dataset):
                     T.Normalize(norm_a[0], norm_a[1]),
                 ]
             )
+            self.framerate = cfg.SPECTOGRAM.SAMPLERATE_HZ
             norm_v = eval(cfg.KEYFRAME.NORMALIZATION)
-            dim_v = eval(cfg.KEYFRAME.DIMENSIONALITY)
+            self.dim_v = eval(cfg.KEYFRAME.DIMENSIONALITY)
             self.visual_transform = T.Compose(
                 [
                     T.Normalize(norm_v[0], norm_v[1]),
-                    T.Resize(dim_v, antialias=True),
+                    T.Resize(self.dim_v, antialias=True),
                 ]
             )
 
     def __len__(self):
-        return self.data_set_size
+        return len(self.timestamps)
 
     def __getitem__(self, index):
         item_dict = dict()
-        item_dict["video"] = self.__get_keyframe__(index=index)
-        item_dict["audio"] = self.__get_spec__(index=index)
-        timestamp = int(
-            self.frame_paths[index].parts[-1].split(".")[0]
-        )  # TODO: set proper timestamp and make sure audio and video are actually aligned
+        timestamp = self.timestamps[index]
+        item_dict["video"] = self.__get_keyframe__(timestamp)
+        item_dict["audio"] = self.__get_spec__(timestamp)
         item_dict["timestamp"] = timestamp
         item_dict["shot_boundaries"] = self.list_of_shots.find_shot_for_timestamp(
             timestamp=timestamp
         )
         return item_dict
 
-    def __get_spec__(self, index, transform=True):
-        data = np.load(self.spec_paths[index], allow_pickle=True)
-        audio = data["arr_0"].item()["audio"]
-        audio = torch.tensor(audio, device=self.device)
-        if transform:
-            audio = self.audio_transform(audio)
+    def __get_spec__(self, timestamp: int, transform=True):
+        try:
+            data = np.load(str(self.paths[timestamp]['spec']), allow_pickle=True)
+            audio = data["arr_0"].item()["audio"]
+            audio = torch.tensor(audio, device=self.device)
+            if transform:
+                audio = self.audio_transform(audio)
+        except KeyError:
+            logger.info(f"No spectogram exists for timestamp {timestamp}"
+                        f" at samplerate {self.framerate}.")
+            audio = torch.zeros(size=self.dim_a)
         return audio
 
-    def __get_keyframe__(self, index: int):
+    def __get_keyframe__(self, timestamp: int):
         try:
-            image_file_path = str(self.frame_paths[index])
-        except IndexError:
-            logger.exception(
-                f"{index} out of range (num frames = {len(self.frame_paths)})"
-            )
-            return None
-        frame = torchvision.io.read_image(image_file_path).to(self.device)
-        frame = self.visual_transform(frame / 255.0)
+            image_file_path = str(self.paths[timestamp]['frame'])
+            frame = torchvision.io.read_image(image_file_path).to(self.device)
+            frame = self.visual_transform(frame / 255.0)
+        except KeyError:
+            logger.info(f"No keyframe exists for timestamp {timestamp}.")
+            frame = torch.zeros(size=(3, self.dim_v[0], self.dim_v[1]))
         return frame
 
     def batches(self, batch_size: int = 1):
