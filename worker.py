@@ -42,10 +42,15 @@ def process_configured_input_file() -> bool:
     if validate_s3_uri(cfg.VISXP_EXTRACT.TEST_INPUT_PATH):
         feature_extraction_input = obtain_input_file(cfg.VISXP_EXTRACT.TEST_INPUT_PATH)
     else:
+        if cfg.VISXP_EXTRACT.TEST_INPUT_PATH.find(".tar.gz") != -1:
+            source_id = get_source_id_from_tar(cfg.VISXP_EXTRACT.TEST_INPUT_PATH)
+        else:
+            source_id = cfg.VISXP_EXTRACT.TEST_INPUT_PATH.split('/')[-1]
+
         feature_extraction_input = VisXPFeatureExtractionInput(
             200,
             f"Thank you for running us: let's test {cfg.VISXP_EXTRACT.TEST_INPUT_PATH}",
-            get_source_id_from_tar(cfg.VISXP_EXTRACT.TEST_INPUT_PATH),
+            source_id,
             cfg.VISXP_EXTRACT.TEST_INPUT_PATH,
             None,  # no provenance needed in test
         )
