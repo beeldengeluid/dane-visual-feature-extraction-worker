@@ -65,9 +65,7 @@ def run(
     dataset = VisXPData(
         datapath=Path(input_file_path),
         model_config_file=os.path.join(model_base_mount, model_config_file),
-        device=device,
-        expected_sample_rate=feature_extraction_input.expected_sample_rate,
-        check_spec_dim=False,
+        device=device
     )
 
     # Step 5: Load model from file
