@@ -19,7 +19,6 @@ def test_extract_features():
             f"Thank you for unit testing: let's process {UNIT_TEST_INPUT_PATH}",
             UNIT_TEST_SOURCE_ID,
             UNIT_TEST_INPUT_PATH,
-            -1,
             None,  # no provenance needed in test
         ),
         model_base_mount="model",

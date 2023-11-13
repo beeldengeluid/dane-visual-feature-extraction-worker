@@ -18,6 +18,8 @@ def apply_model(batch, model, device):
     frames, spectograms = batch["video"], batch["audio"]
     timestamps = batch["timestamp"].to(device)
     shots = batch["shot_boundaries"].to(device)
+    # TODO: mask/disregard all zero frames/spectograms
+    # (for the, now theoretical, case of only audio OR video existing)
     with torch.no_grad():  # Forward pass to get the features
         audio_feat = model.audio_model(spectograms)
         visual_feat = model.video_model(frames)
@@ -64,8 +66,6 @@ def run(
         datapath=Path(input_file_path),
         model_config_file=os.path.join(model_base_mount, model_config_file),
         device=device,
-        expected_sample_rate=feature_extraction_input.expected_sample_rate,
-        check_spec_dim=False,
     )
 
     # Step 5: Load model from file

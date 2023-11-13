@@ -8,7 +8,6 @@ def test_batches():
         datapath="data/input-files/test_source_id",
         model_config_file="model/model_config.yml",
         device=device,
-        expected_sample_rate=-1,  # not specified in the test data
         check_spec_dim=False,
     )
     for i, item in enumerate(dataset.batches(1)):

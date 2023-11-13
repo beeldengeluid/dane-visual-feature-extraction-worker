@@ -255,7 +255,6 @@ def obtain_input_file(s3_uri: str) -> VisXPFeatureExtractionInput:
             f"Failed to download: {s3_uri}",
             source_id_from_s3_uri(s3_uri),  # source_id
             input_file_path,  # locally downloaded .tar.gz
-            cfg.VISXP_EXTRACT.EXPECTED_SPECTOGRAM_SAMPLERATE_HZ,
             provenance,
         )
     logger.error("Failed to download VISXP_PREP data from S3")
