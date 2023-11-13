@@ -22,7 +22,6 @@ class VisXPData(Dataset):
         datapath: Path,
         model_config_file: str,
         device: torch.device,
-        expected_sample_rate=-1,  # 24000 | 48000
         check_spec_dim=False,
     ):
         if type(datapath) is not Path:
