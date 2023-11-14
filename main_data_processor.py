@@ -131,6 +131,15 @@ def check_model_availability():
         return True
 
     logger.info("Model not found, checking availability in S3")
+    if not all(
+        key in cfg.INPUT
+        for key in ["MODEL_CHECKPOINT_S3_URI", "MODEL_CONFIG_S3_URI", "S3_ENDPOINT_URL"]
+    ):
+        logger.error(
+            "Incomplete config for downloading models from S3, please configure: INPUT.S3_ENDPOINT_URL, INPUT.MODEL_CONFIG_S3_URI, INPUT.MODEL_CHECKPOINT_S3_URI"
+        )
+        return False
+
     download_success = download_model_from_s3(
         cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT,  # download models into this dir
         cfg.INPUT.MODEL_CHECKPOINT_S3_URI,  # model checkpoint file is stored here

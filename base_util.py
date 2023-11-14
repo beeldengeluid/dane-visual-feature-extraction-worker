@@ -61,9 +61,6 @@ def validate_config(config: CfgNode, validate_file_paths: bool = True) -> bool:
         assert check_setting(config.PATHS.TEMP_FOLDER, str), "PATHS.TEMP_FOLDER"
         assert check_setting(config.PATHS.OUT_FOLDER, str), "PATHS.OUT_FOLDER"
 
-        # Settings for this DANE worker
-        # ....
-
         assert config.FILE_SYSTEM, "FILE_SYSTEM"
         assert check_setting(
             config.FILE_SYSTEM.BASE_MOUNT, str
@@ -72,6 +69,52 @@ def validate_config(config: CfgNode, validate_file_paths: bool = True) -> bool:
         assert check_setting(
             config.FILE_SYSTEM.OUTPUT_DIR, str
         ), "FILE_SYSTEM.OUTPUT_DIR"
+
+        # settings for this worker specifically
+        assert config.VISXP_EXTRACT, "VISXP_EXTRACT"
+        assert check_setting(
+            config.VISXP_EXTRACT.MODEL_BASE_MOUNT, str
+        ), "VISXP_EXTRACT.MODEL_BASE_MOUNT"
+        assert check_setting(
+            config.VISXP_EXTRACT.MODEL_CHECKPOINT_FILE, str
+        ), "VISXP_EXTRACT.MODEL_CHECKPOINT_FILE"
+        assert check_setting(
+            config.VISXP_EXTRACT.MODEL_CONFIG_FILE, str
+        ), "VISXP_EXTRACT.MODEL_CONFIG_FILE"
+        assert check_setting(
+            config.VISXP_EXTRACT.TEST_INPUT_PATH, str, True
+        ), "VISXP_EXTRACT.TEST_INPUT_PATH"
+
+        assert config.INPUT, "INPUT"
+        assert check_setting(
+            config.INPUT.S3_ENDPOINT_URL, str, True
+        ), "INPUT.S3_ENDPOINT_URL"
+        assert check_setting(
+            config.INPUT.MODEL_CHECKPOINT_S3_URI, str, True
+        ), "INPUT.MODEL_CHECKPOINT_S3_URI"
+        assert check_setting(
+            config.INPUT.MODEL_CONFIG_S3_URI, str, True
+        ), "INPUT.MODEL_CONFIG_S3_URI"
+        assert check_setting(
+            config.INPUT.DELETE_ON_COMPLETION, bool
+        ), "INPUT.DELETE_ON_COMPLETION"
+
+        assert config.OUTPUT, "OUTPUT"
+        assert check_setting(
+            config.OUTPUT.DELETE_ON_COMPLETION, bool
+        ), "OUTPUT.DELETE_ON_COMPLETION"
+        assert check_setting(
+            config.OUTPUT.TRANSFER_ON_COMPLETION, bool
+        ), "OUTPUT.TRANSFER_ON_COMPLETION"
+        if config.OUTPUT.TRANSFER_ON_COMPLETION:
+            # required only in case output must be transferred
+            assert check_setting(
+                config.OUTPUT.S3_ENDPOINT_URL, str
+            ), "OUTPUT.S3_ENDPOINT_URL"
+            assert check_setting(config.OUTPUT.S3_BUCKET, str), "OUTPUT.S3_BUCKET"
+            assert check_setting(
+                config.OUTPUT.S3_FOLDER_IN_BUCKET, str
+            ), "OUTPUT.S3_FOLDER_IN_BUCKET"
 
         assert __check_dane_dependencies(config.DANE_DEPENDENCIES), "DANE_DEPENDENCIES"
 
