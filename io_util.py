@@ -27,6 +27,33 @@ S3_OUTPUT_TYPES: List[OutputType] = [
 ]  # only upload this output to S3
 
 
+# make sure the necessary base dirs are there
+def validate_data_dirs() -> bool:  # TODO: perhaps add model dir
+    i_dir = Path(get_download_dir())
+    o_dir = Path(get_base_output_dir())
+
+    if not os.path.exists(i_dir.parent.absolute()):
+        logger.info(
+            f"{i_dir.parent.absolute()} does not exist. Make sure BASE_MOUNT_DIR exists before retrying"
+        )
+        return False
+
+    # make sure the input and output dirs are there
+    try:
+        os.makedirs(i_dir, 0o755)
+        logger.info("created VisXP input dir: {}".format(i_dir))
+    except FileExistsError as e:
+        logger.info(e)
+
+    try:
+        os.makedirs(o_dir, 0o755)
+        logger.info("created VisXP output dir: {}".format(o_dir))
+    except FileExistsError as e:
+        logger.info(e)
+
+    return True
+
+
 # for each OutputType a subdir is created inside the base output dir
 def generate_output_dirs(source_id: str) -> Dict[str, str]:
     base_output_dir = get_base_output_dir(source_id)

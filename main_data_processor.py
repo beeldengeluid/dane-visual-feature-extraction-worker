@@ -1,15 +1,20 @@
 import logging
 import os
-from time import time
+from typing import Tuple, Optional
 
 from dane.config import cfg
+from dane.s3_util import validate_s3_uri
 import feature_extraction
 from io_util import (
     get_base_output_dir,
     get_output_file_path,
+    generate_output_dirs,
+    get_source_id_from_tar,
+    obtain_input_file,
     transfer_output,
     delete_local_output,
     delete_input_file,
+    validate_data_dirs,
 )
 from models import (
     CallbackResponse,
@@ -18,10 +23,92 @@ from models import (
     OutputType,
 )
 from nn_models import download_model_from_s3
-from provenance import generate_full_provenance_chain
+from dane.provenance import (
+    Provenance,
+    obtain_software_versions,
+    generate_initial_provenance,
+    stop_timer_and_persist_provenance_chain,
+)
 
 
 logger = logging.getLogger(__name__)
+DANE_WORKER_ID = "dane-visual-feature-extraction-worker"
+
+
+# triggered by running: python worker.py --run-test-file
+def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
+    # there must be an input file
+    if not input_file_path:
+        logger.error("input file empty")
+        return {"state": 403, "message": "Error, no input file"}, []
+
+    # check if the file system is setup properly
+    if not validate_data_dirs():
+        logger.info("ERROR: data dirs not configured properly")
+        return {"state": 500, "message": "Input & output dirs not ok"}, []
+
+    # create the top-level provenance
+    top_level_provenance = generate_initial_provenance(
+        name="VisXP feature extraction",
+        description=(
+            "Based on keyframes and corresponing audio spectograms, "
+            "extract features by applying forward pass of a model"
+        ),
+        input_data={"input_file_path": input_file_path},
+        parameters=dict(cfg.VISXP_PREP),
+        software_version=obtain_software_versions(DANE_WORKER_ID),
+    )
+    provenance_chain = []  # will contain the steps of the top-level provenance
+
+    # S3 URI, local tar.gz or locally extracted tar.gz is allowed
+    if validate_s3_uri(input_file_path):
+        feature_extraction_input = obtain_input_file(input_file_path)
+    else:
+        if input_file_path.find(".tar.gz") != -1:
+            source_id = get_source_id_from_tar(input_file_path)
+        else:
+            source_id = input_file_path.split("/")[-1]
+
+        feature_extraction_input = VisXPFeatureExtractionInput(
+            200,
+            f"Processing tar.gz archive: {input_file_path}",
+            source_id,
+            input_file_path,
+            None,  # no download provenance when using local file
+        )
+
+    # add the download provenance
+    if feature_extraction_input.provenance:
+        provenance_chain.append(feature_extraction_input.provenance)
+
+    # first generate the output dirs
+    generate_output_dirs(source_id)
+
+    # apply model to input & extract features
+    proc_result = extract_visual_features(feature_extraction_input)
+
+    if proc_result.provenance:
+        provenance_chain.append(proc_result.provenance)
+
+    # as a last piece of output, generate the provenance.json before packaging and uploading
+    full_provenance_chain = stop_timer_and_persist_provenance_chain(
+        provenance=top_level_provenance,
+        output_data={"output_path": get_base_output_dir(source_id)},
+        provenance_chain=provenance_chain,
+        provenance_file_path=get_output_file_path(source_id, OutputType.PROVENANCE),
+    )  # source_id_from_s3_uri(s3_uri)
+
+    # if all is ok, apply the I/O steps on the outputted features
+    validated_output: CallbackResponse = apply_desired_io_on_output(
+        feature_extraction_input,
+        proc_result,
+        cfg.INPUT.DELETE_ON_COMPLETION,
+        cfg.OUTPUT.DELETE_ON_COMPLETION,
+        cfg.OUTPUT.TRANSFER_ON_COMPLETION,
+    )
+    logger.info("Results after applying desired I/O")
+    logger.info(validated_output)
+    return validated_output, full_provenance_chain
 
 
 # makes sure the models are available, if not downloads them from S3
@@ -60,7 +147,6 @@ def extract_visual_features(
     if not check_model_availability():
         return VisXPFeatureExtractionOutput(500, "Could not find model and its config")
 
-    start_time = time()  # skip counting the download of the model
     feature_extraction_provenance = feature_extraction.run(
         feature_extraction_input,
         model_base_mount=cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT,
@@ -74,18 +160,11 @@ def extract_visual_features(
     if not feature_extraction_provenance:
         return VisXPFeatureExtractionOutput(500, "Failed to extract features")
 
-    # generate provenance, since all went well
-    provenance = generate_full_provenance_chain(
-        start_time=start_time,
-        input_path=feature_extraction_input.input_file_path,
-        provenance_chain=[],
-        source_id=feature_extraction_input.source_id,
-    )
     return VisXPFeatureExtractionOutput(
         200,
         "Succesfully extracted features",
         get_base_output_dir(feature_extraction_input.source_id),
-        provenance,
+        feature_extraction_provenance,
     )
 
 
