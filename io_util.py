@@ -107,12 +107,9 @@ def get_s3_base_uri(source_id: str) -> str:
     return f"s3://{os.path.join(cfg.OUTPUT.S3_BUCKET, cfg.OUTPUT.S3_FOLDER_IN_BUCKET, source_id)}"
 
 
-# e.g. s3://<bucket>/assets/<source_id>/visxp_features__<source_id>.pt
-# TODO adapt this
-def get_s3_output_file_uri(source_id: str, output_type: OutputType) -> str:
-    return (
-        f"{get_s3_base_uri(source_id)}/{get_output_file_name(source_id, output_type)}"
-    )
+# e.g. s3://<bucket>/assets/<source_id>/visxp_features__<source_id>.tar.gz
+def get_s3_output_file_uri(source_id: str) -> str:
+    return f"{get_s3_base_uri(source_id)}/{get_archive_file_path(source_id)}"
 
 
 # NOTE: only use for test run & unit test with input that points to tar file!

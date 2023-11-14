@@ -6,7 +6,7 @@ from dane import Document, Task, Result
 from dane.base_classes import base_worker
 from dane.config import cfg
 from dane.provenance import Provenance
-from models import CallbackResponse, OutputType
+from models import CallbackResponse
 from io_util import (
     fetch_visxp_prep_s3_uri,
     source_id_from_s3_uri,
@@ -79,9 +79,7 @@ class VisualFeatureExtractionWorker(base_worker):
             self.save_to_dane_index(
                 doc,
                 task,
-                get_s3_output_file_uri(
-                    source_id_from_s3_uri(s3_uri), OutputType.FEATURES
-                ),
+                get_s3_output_file_uri(source_id_from_s3_uri(s3_uri)),
                 provenance=full_provenance_chain,
             )
         return processing_result
@@ -143,7 +141,7 @@ if __name__ == "__main__":
         logger.info("Running feature extraction with VISXP_EXTRACT.TEST_INPUT_PATH ")
         if cfg.VISXP_EXTRACT and cfg.VISXP_EXTRACT.TEST_INPUT_PATH:
             processing_result, full_provenance_chain = main_data_processor.run(
-                cfg.VISXP_PREP.TEST_INPUT_FILE
+                cfg.VISXP_EXTRACT.TEST_INPUT_PATH
             )
             logger.info("Results after applying desired I/O")
             logger.info(processing_result)

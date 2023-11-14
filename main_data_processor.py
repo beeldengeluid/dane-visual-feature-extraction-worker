@@ -8,6 +8,7 @@ import feature_extraction
 from io_util import (
     get_base_output_dir,
     get_output_file_path,
+    get_s3_output_file_uri,
     generate_output_dirs,
     get_source_id_from_tar,
     obtain_input_file,
@@ -55,7 +56,7 @@ def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
             "extract features by applying forward pass of a model"
         ),
         input_data={"input_file_path": input_file_path},
-        parameters=dict(cfg.VISXP_PREP),
+        parameters=dict(cfg.VISXP_EXTRACT),
         software_version=obtain_software_versions(DANE_WORKER_ID),
     )
     provenance_chain = []  # will contain the steps of the top-level provenance
@@ -82,7 +83,7 @@ def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
         provenance_chain.append(feature_extraction_input.provenance)
 
     # first generate the output dirs
-    generate_output_dirs(source_id)
+    generate_output_dirs(feature_extraction_input.source_id)
 
     # apply model to input & extract features
     proc_result = extract_visual_features(feature_extraction_input)
@@ -93,10 +94,15 @@ def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
     # as a last piece of output, generate the provenance.json before packaging and uploading
     full_provenance_chain = stop_timer_and_persist_provenance_chain(
         provenance=top_level_provenance,
-        output_data={"output_path": get_base_output_dir(source_id)},
+        output_data={
+            "output_path": get_base_output_dir(feature_extraction_input.source_id),
+            "output_uri": get_s3_output_file_uri(feature_extraction_input.source_id),
+        },
         provenance_chain=provenance_chain,
-        provenance_file_path=get_output_file_path(source_id, OutputType.PROVENANCE),
-    )  # source_id_from_s3_uri(s3_uri)
+        provenance_file_path=get_output_file_path(
+            feature_extraction_input.source_id, OutputType.PROVENANCE
+        ),
+    )
 
     # if all is ok, apply the I/O steps on the outputted features
     validated_output: CallbackResponse = apply_desired_io_on_output(
@@ -213,7 +219,7 @@ def apply_desired_io_on_output(
     ):
         return {
             "state": 500,
-            "message": "Generated VISXP_PREP output, but could not delete the input file",
+            "message": "Generated VisXP features, but could not delete the input file",
         }
 
     return {
