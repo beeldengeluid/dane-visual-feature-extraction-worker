@@ -17,7 +17,7 @@ torchvision = "0.15.1"  # 0.15.2 yields installation issues (https://github.com/
 # name = "pytorch"
 # url = "https://download.pytorch.org/whl/cpu/"
 # priority = "supplemental"
-dane = "^0.3.9"
+dane = "^0.4.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.2.0"

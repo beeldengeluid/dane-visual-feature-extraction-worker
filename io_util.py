@@ -27,6 +27,33 @@ S3_OUTPUT_TYPES: List[OutputType] = [
 ]  # only upload this output to S3
 
 
+# make sure the necessary base dirs are there
+def validate_data_dirs() -> bool:  # TODO: perhaps add model dir
+    i_dir = Path(get_download_dir())
+    o_dir = Path(get_base_output_dir())
+
+    if not os.path.exists(i_dir.parent.absolute()):
+        logger.info(
+            f"{i_dir.parent.absolute()} does not exist. Make sure BASE_MOUNT_DIR exists before retrying"
+        )
+        return False
+
+    # make sure the input and output dirs are there
+    try:
+        os.makedirs(i_dir, 0o755)
+        logger.info("created VisXP input dir: {}".format(i_dir))
+    except FileExistsError as e:
+        logger.info(e)
+
+    try:
+        os.makedirs(o_dir, 0o755)
+        logger.info("created VisXP output dir: {}".format(o_dir))
+    except FileExistsError as e:
+        logger.info(e)
+
+    return True
+
+
 # for each OutputType a subdir is created inside the base output dir
 def generate_output_dirs(source_id: str) -> Dict[str, str]:
     base_output_dir = get_base_output_dir(source_id)
@@ -80,12 +107,9 @@ def get_s3_base_uri(source_id: str) -> str:
     return f"s3://{os.path.join(cfg.OUTPUT.S3_BUCKET, cfg.OUTPUT.S3_FOLDER_IN_BUCKET, source_id)}"
 
 
-# e.g. s3://<bucket>/assets/<source_id>/visxp_features__<source_id>.pt
-# TODO adapt this
-def get_s3_output_file_uri(source_id: str, output_type: OutputType) -> str:
-    return (
-        f"{get_s3_base_uri(source_id)}/{get_output_file_name(source_id, output_type)}"
-    )
+# e.g. s3://<bucket>/assets/<source_id>/visxp_features__<source_id>.tar.gz
+def get_s3_output_file_uri(source_id: str) -> str:
+    return f"{get_s3_base_uri(source_id)}/{get_archive_file_path(source_id)}"
 
 
 # NOTE: only use for test run & unit test with input that points to tar file!
