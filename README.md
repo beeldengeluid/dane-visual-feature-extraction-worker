@@ -67,22 +67,22 @@ There is no need to update the docker-compose.yml, but make sure to:
 
 ## Local environment
 
-### Installation 
+### Config 
+Copy `config/config.yml` to the root of the repo: `./config.yml` as your local config file. 
+In the (local) config file, replace all root directories (`/data` and `/model`) to actual directories on your local system (presumably `./data` and `./model`)
 Add a model specification to the appropriate dir: `model/checkpoint.tar` and `model/model_config.yml`
 
-Copy `config/config.yml` to the root of the repo: `./config.yml`. 
-In the config file, replace all root directories (`/data` and `/model`) to actual directories on your local system (presumably `./data` and `./model`)
-
+### Installation 
 
 From the root of the repo, run 
 ```sh
-Poetry install
+poetry install
 ```
 
 ### Testing
 Run tests with: 
 ```sh
-Poetry run pytest 
+poetry run pytest 
 ```
 Optionally add `--pdb` for debugging
 
