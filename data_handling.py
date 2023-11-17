@@ -34,7 +34,7 @@ class VisXPData(Dataset):
             self.paths[int(p.stem)].update({"frame": p})
         for p in datapath.glob(f"{SPECTOGRAM_INPUT_DIR}/*_{self.framerate}.npz"):
             self.paths[int(p.stem.split("_")[0])].update({"spec": p})
-        self.timestamps = list(self.paths.keys())
+        self.timestamps = sorted(list(self.paths.keys()))
         self.device = device
         self.list_of_shots = self.ListOfShots(datapath)
 
