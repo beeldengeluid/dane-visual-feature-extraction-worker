@@ -85,6 +85,7 @@ def validate_config(config: CfgNode, validate_file_paths: bool = True) -> bool:
             config.VISXP_EXTRACT.TEST_INPUT_PATH, str, True
         ), "VISXP_EXTRACT.TEST_INPUT_PATH"
 
+        # settings for input & output handling
         assert config.INPUT, "INPUT"
         assert check_setting(
             config.INPUT.S3_ENDPOINT_URL, str, True

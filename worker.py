@@ -102,7 +102,7 @@ class VisualFeatureExtractionWorker(base_worker):
                 "doc_target_id": doc.target["id"],
                 "doc_target_url": doc.target["url"],
                 "s3_location": s3_location,
-                "provenance": provenance.to_json(),
+                # "provenance": provenance.to_json(),
             },
             api=self.handler,
         )
