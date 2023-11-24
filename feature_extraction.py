@@ -9,7 +9,6 @@ from data_handling import VisXPData
 from io_util import untar_input_file
 from models import VisXPFeatureExtractionInput, Provenance
 from nn_models import load_model_from_file
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
