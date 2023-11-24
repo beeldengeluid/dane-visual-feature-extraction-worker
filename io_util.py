@@ -86,7 +86,7 @@ def get_output_file_name(source_id: str, output_type: OutputType) -> str:
     output_file_name = ""
     match output_type:
         case OutputType.FEATURES:
-            output_file_name = f"{OUTPUT_FILE_BASE_NAME}__{source_id}.pt"
+            output_file_name = f"{OUTPUT_FILE_BASE_NAME}__{source_id}.npy"
         case OutputType.PROVENANCE:
             output_file_name = "provenance.json"
     return output_file_name
