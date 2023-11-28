@@ -4,7 +4,7 @@ import torch
 import feature_extraction
 from io_util import get_output_file_path
 from models import OutputType, VisXPFeatureExtractionInput
-
+import numpy as np
 
 UNIT_TEST_SOURCE_ID = "test_source_id"
 UNIT_TEST_INPUT_PATH = f"./data/input-files/{UNIT_TEST_SOURCE_ID}"
@@ -26,8 +26,8 @@ def test_extract_features():
         model_config_file="model_config.yml",
         output_file_path=feature_file,
     )
-    with open(feature_file, "rb") as f:
-        features = torch.load(f)
+
+    features = torch.Tensor(np.load(feature_file))
     with open("./data/demo_concat_feat.pt", "rb") as f:
         example_features = torch.load(f)
 

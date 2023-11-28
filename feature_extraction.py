@@ -9,6 +9,7 @@ from data_handling import VisXPData
 from io_util import untar_input_file
 from models import VisXPFeatureExtractionInput, Provenance
 from nn_models import load_model_from_file
+import numpy as np
 
 
 logger = logging.getLogger(__name__)
@@ -116,9 +117,8 @@ def _save_features_to_file(features: torch.Tensor, output_file_path: str) -> boo
         if not os.path.isdir(parent_dir):
             logger.info("Parent dir, did not exist, creating it now")
             os.makedirs(parent_dir)
-        with open(output_file_path, "wb") as f:
-            torch.save(obj=features, f=f)
-            return True
+        np.save(output_file_path, np.array(features))
+        return True
     except Exception:
         logger.exception("Failed to save features to file")
-    return False
+        return False
