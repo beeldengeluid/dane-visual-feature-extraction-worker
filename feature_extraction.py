@@ -117,6 +117,7 @@ def _save_features_to_file(features: torch.Tensor, output_file_path: str) -> boo
             logger.info("Parent dir, did not exist, creating it now")
             os.makedirs(parent_dir)
         np.save(output_file_path, np.array(features))
+        return True
     except Exception:
         logger.exception("Failed to save features to file")
     return False
