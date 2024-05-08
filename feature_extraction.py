@@ -6,8 +6,9 @@ import torch
 from typing import Optional
 
 from data_handling import VisXPData
+from dane.provenance import obtain_software_versions, Provenance
 from io_util import untar_input_file
-from models import VisXPFeatureExtractionInput, Provenance
+from models import VisXPFeatureExtractionInput
 from nn_models import load_model_from_file
 import numpy as np
 
@@ -34,6 +35,7 @@ def run(
     model_checkpoint_file: str,
     model_config_file: str,
     output_file_path: str,
+    dane_worker_id: str
 ) -> Optional[Provenance]:
     start_time = time()
 
@@ -98,7 +100,9 @@ def run(
         activity_name="VisXP feature extraction",
         activity_description=("Extract features vectors in .pt file"),
         start_time_unix=start_time,
-        processing_time_ms=time() - start_time,
+        processing_time_ms=(time() - start_time)*1000,
+        parameters={},
+        software_version=obtain_software_versions(dane_worker_id),
         input_data={"input_file_path": input_file_path},
         output_data={"output_file_path": output_file_path},
     )

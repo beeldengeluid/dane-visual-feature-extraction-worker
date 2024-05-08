@@ -1,4 +1,5 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields, is_dataclass
+from dane.provenance import Provenance
 from enum import Enum
 from typing import Optional, TypedDict
 
@@ -16,31 +17,23 @@ class OutputType(Enum):
 
 
 # NOTE https://stackoverflow.com/questions/20670732/is-input-a-keyword-in-python
-@dataclass
-class Provenance:
-    activity_name: str
-    activity_description: str
-    start_time_unix: float
-    processing_time_ms: float
-    input_data: dict[str, str]
-    output_data: dict[str, str]
-    parameters: Optional[dict] = None
-    software_version: Optional[dict[str, str]] = None
-    steps: Optional[list["Provenance"]] = field(default_factory=list["Provenance"])
 
-    def to_json(self):
-        processing_steps = self.steps if self.steps else []
-        return {
-            "activity_name": self.activity_name,
-            "activity_description": self.activity_description,
-            "processing_time_ms": self.processing_time_ms,
-            "start_time_unix": self.start_time_unix,
-            "parameters": self.parameters,  # .to_json
-            "software_version": self.software_version,  # .to_json
-            "input_data": self.input_data,  # .to_json
-            "output_data": self.output_data,  # .to_json
-            "steps": [step.to_json() for step in processing_steps],
-        }
+def provenance_from_dict(input: dict) -> Optional[Provenance]:
+    """Converts provenance from a dictionary into a Provenance object. Calls itself
+    recursively to handle each part of the provenance object
+    :param input - this should be the dict with the provenance on the first call
+    :returns the provenance as a Provenance object"""   
+    return Provenance(
+        activity_name=input.get("activity_name", ""),
+        activity_description=input.get("activity_description", ""),
+        processing_time_ms=input.get("processing_time_ms", -1),
+        start_time_unix=input.get("start_time_unix", -1),
+        parameters=input.get("parameters", {}),
+        software_version=input.get("software_version", {}),
+        input_data=input.get("input_data", {}),
+        output_data=input.get("output_data", {}),
+        steps=[provenance_from_dict(step) for step in input.get("steps", [])]
+    )
 
 
 @dataclass
