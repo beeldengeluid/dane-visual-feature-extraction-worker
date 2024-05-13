@@ -35,8 +35,8 @@ VISXP_EXTRACT:
     TEST_INPUT_PATH: /data/input-files/testob/visxp_prep__testob.tar.gz
 INPUT:
     S3_ENDPOINT_URL: https://s3-host
-    MODEL_CHECKPOINT_S3_URI: s3://beng-daan-visxp/model/checkpoint.tar
-    MODEL_CONFIG_S3_URI: s3://beng-daan-visxp/model/model_config.yml
+    MODEL_CHECKPOINT_S3_URI: s3://beng-daan-visxp/model/visualnet_checkpoint.tar
+    MODEL_CONFIG_S3_URI: s3://beng-daan-visxp/model/visualnet_config.yml
     DELETE_ON_COMPLETION: False
 OUTPUT:
     DELETE_ON_COMPLETION: True
