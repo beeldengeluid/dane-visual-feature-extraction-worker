@@ -285,7 +285,10 @@ def load_model_from_file(checkpoint_file, config_file, device):
             f" in model config {config_file}"
         )
 
-    return model.to(device)
+    model.to(device)
+    # Switch model mode: in training mode, model layers behave differently!
+    model.eval()
+    return model
 
 
 def convert_avnet_to_visualnet(
@@ -309,7 +312,7 @@ def convert_avnet_to_visualnet(
             'TYPE': 'VisualNet',
             'DOUBLE_CONVOLUTION': cfg.MODEL.DOUBLE_CONVOLUTION})
         cfg.INPUT = CN({
-            'KEYFRAMES': {
+            'KEYFRAME': {
                 'DIMENSIONALITY': cfg.INPUT.KEYFRAME.DIMENSIONALITY,
                 'NORMALIZATION': cfg.INPUT.KEYFRAME.NORMALIZATION}})
     with open(v_config_path, 'w') as f:
