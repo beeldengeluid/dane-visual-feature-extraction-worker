@@ -35,8 +35,11 @@ class VisXPData(Dataset):
         self.list_of_shots = self.ListOfShots(datapath)
         if audio_too:
             self.init_audio_too(datapath=datapath, model_config_file=model_config_file)
+        else:
+            self.audio_too = False
 
     def init_audio_too(self, datapath: Path, model_config_file: str):
+        self.audio_too = True
         with open(model_config_file, "r") as f:
             cfg = CN.load_cfg(f).INPUT
         norm_a = eval(cfg.SPECTROGRAM.NORMALIZATION)
@@ -65,11 +68,11 @@ class VisXPData(Dataset):
     def __len__(self):
         return len(self.timestamps)
 
-    def __getitem__(self, index, audio_too=False):
+    def __getitem__(self, index):
         item_dict = dict()
         timestamp = self.timestamps[index]
         item_dict["video"] = self.__get_keyframe__(timestamp)
-        if audio_too:
+        if self.audio_too:
             item_dict["audio"] = self.__get_spec__(timestamp)
         item_dict["timestamp"] = timestamp
         item_dict["shot_boundaries"] = self.list_of_shots.find_shot_for_timestamp(
