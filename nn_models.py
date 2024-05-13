@@ -266,11 +266,50 @@ def download_model_from_s3(
 
 def load_model_from_file(checkpoint_file, config_file, device):
     logger.info(f"Loading {checkpoint_file} and using model config: {config_file}")
+    checkpoint = torch.load(checkpoint_file, map_location=torch.device("cpu"))
     with open(config_file, "r") as f:
         cfg = CN.load_cfg(f)
-    model = globals()[cfg.MODEL.TYPE](
-        num_classes=cfg.MODEL.N_CLASSES, double_convolution=cfg.MODEL.DOUBLE_CONVOLUTION
-    )
-    checkpoint = torch.load(checkpoint_file, map_location=torch.device("cpu"))
-    model.load_state_dict(checkpoint["state_dict"])
+    if cfg.MODEL.TYPE == "AVNet":
+        model = AVNet(
+            num_classes=cfg.MODEL.N_CLASSES,
+            double_convolution=cfg.MODEL.DOUBLE_CONVOLUTION,
+        )
+        model.load_state_dict(checkpoint["state_dict"])
+    elif cfg.MODEL.TYPE == "VisualNet":
+        model = VisualNet(double_convolution=cfg.MODEL.DOUBLE_CONVOLUTION)
+        model.load_state_dict(checkpoint)
+    else:
+        logger.error(
+            f"Unspupported model type ({cfg.MODEL.TYPE}) specified"
+            f" in model config {config_file}"
+        )
+
     return model.to(device)
+
+
+def convert_avnet_to_visualnet(
+        av_path: str, av_config_path, v_path: str, v_config_path: str):
+    '''Load model checkpoint for AV model from file.
+       Obtain model parameters for Visualnet and store to file.
+       Convert model config accordingly (strip off some elements)'''
+    loaded_model = load_model_from_file(av_path, av_config_path, "cpu")
+    state_dict = loaded_model.video_model.state_dict()
+    # fc: extra linear layer added on top of separate A/V models for AV-net
+    # never used in forward pass though
+    # and raises Exception when loading model from file
+    del state_dict['fc.weight']
+    del state_dict['fc.bias']
+    torch.save(state_dict, v_path)
+    logger.info("Saved visualnet checkpoint to file")
+    with open(av_config_path, "r") as f:
+        cfg = CN.load_cfg(f)
+    if True:
+        cfg.MODEL = CN({
+            'TYPE': 'VisualNet',
+            'DOUBLE_CONVOLUTION': cfg.MODEL.DOUBLE_CONVOLUTION})
+        cfg.INPUT = CN({
+            'DIMENSIONALITY': cfg.INPUT.KEYFRAME.DIMENSIONALITY,
+            'NORMALIZATION': cfg.INPUT.KEYFRAME.NORMALIZATION})
+    with open(v_config_path, 'w') as f:
+        f.write(cfg.dump())
+
