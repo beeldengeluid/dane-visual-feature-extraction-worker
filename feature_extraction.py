@@ -15,15 +15,22 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-def apply_model(batch, model, device):
+def apply_model(batch, model, device, audio_too=False):
     frames = batch["video"]
     timestamps = batch["timestamp"].to(device)
     shots = batch["shot_boundaries"].to(device)
     # TODO: mask/disregard all zero frames/spectograms
     # (for the, now theoretical, case of only audio OR video existing)
     with torch.no_grad():  # Forward pass to get the features
-        visual_feat = model.video_model(frames)
-    result = torch.concat((timestamps.unsqueeze(1), shots, visual_feat), 1)
+        if audio_too:
+            spectrograms = batch["video"], batch["audio"]
+            audio_feat = model.audio_model(spectrograms)
+            visual_feat = model.video_model(frames)
+            result = torch.concat(
+                (timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1)
+        else:
+            visual_feat = model(frames)
+            result = torch.concat((timestamps.unsqueeze(1), shots, visual_feat), 1)
     return result
 
 
