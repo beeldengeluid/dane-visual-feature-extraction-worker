@@ -4,7 +4,7 @@ from yacs.config import CfgNode as CN
 import logging
 from typing import Optional
 
-from dane.s3_util import S3Store, parse_s3_uri, validate_s3_uri
+from dane.s3_util import S3Store, parse_s3_uri, validate_s3_uri, download_s3_uri
 
 
 logger = logging.getLogger(__name__)
@@ -253,9 +253,10 @@ def download_model_from_s3(
         return False
 
     for s3_uri in s3_uris:
-        s3 = S3Store(s3_endpoint_url)
-        bucket, object_name = parse_s3_uri(s3_uri)
-        success = s3.download_file(bucket, object_name, model_base_mount)
+        if not validate_s3_uri(s3_uri):
+            logger.error(f"S3 URI invalid: {s3_uri}")
+            return False
+        success = download_s3_uri(s3_uri=s3_uri, output_folder=model_base_mount)
         if not success:
             logger.error(f"Could not download {s3_uri} into {model_base_mount}")
             return False
@@ -308,8 +309,8 @@ def convert_avnet_to_visualnet(
             'TYPE': 'VisualNet',
             'DOUBLE_CONVOLUTION': cfg.MODEL.DOUBLE_CONVOLUTION})
         cfg.INPUT = CN({
-            'DIMENSIONALITY': cfg.INPUT.KEYFRAME.DIMENSIONALITY,
-            'NORMALIZATION': cfg.INPUT.KEYFRAME.NORMALIZATION})
+            'KEYFRAMES': {
+                'DIMENSIONALITY': cfg.INPUT.KEYFRAME.DIMENSIONALITY,
+                'NORMALIZATION': cfg.INPUT.KEYFRAME.NORMALIZATION}})
     with open(v_config_path, 'w') as f:
         f.write(cfg.dump())
-
