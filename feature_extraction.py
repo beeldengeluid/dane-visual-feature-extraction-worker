@@ -68,7 +68,7 @@ def run(
         )  # change the input path to the parent dir
         logger.info(f"Changed input_file_path to: {input_file_path}")
 
-    # Step 4: Load spectograms + keyframes from file & preprocess
+    # Step 4: Load spectrograms + keyframes from file & preprocess
     dataset = VisXPData(
         datapath=Path(input_file_path),
         model_config_file=os.path.join(model_base_mount, model_config_file),

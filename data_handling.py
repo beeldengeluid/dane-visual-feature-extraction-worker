@@ -89,7 +89,7 @@ class VisXPData(Dataset):
                 audio = self.audio_transform(audio)
         except KeyError:
             logger.info(
-                f"No spectogram exists for timestamp {timestamp}"
+                f"No spectrogram exists for timestamp {timestamp}"
                 f" at samplerate {self.framerate}."
             )
             audio = torch.zeros(size=self.dim_a)
