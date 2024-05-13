@@ -15,15 +15,13 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-def apply_model(batch, model, device, audio_too=False):
+def apply_model(batch, model, device):
     frames = batch["video"]
     timestamps = batch["timestamp"].to(device)
     shots = batch["shot_boundaries"].to(device)
-    # TODO: mask/disregard all zero frames/spectograms
-    # (for the, now theoretical, case of only audio OR video existing)
     with torch.no_grad():  # Forward pass to get the features
-        if audio_too:
-            spectrograms = batch["video"], batch["audio"]
+        if 'audio' in batch:
+            spectrograms = batch["audio"]
             audio_feat = model.audio_model(spectrograms)
             visual_feat = model.video_model(frames)
             result = torch.concat(
@@ -40,6 +38,7 @@ def run(
     model_checkpoint_file: str,
     model_config_file: str,
     output_file_path: str,
+    audio_too: bool = False,
 ) -> Optional[Provenance]:
     start_time = time()
 
@@ -74,6 +73,7 @@ def run(
         datapath=Path(input_file_path),
         model_config_file=os.path.join(model_base_mount, model_config_file),
         device=device,
+        audio_too=audio_too
     )
 
     # Step 5: Load model from file
