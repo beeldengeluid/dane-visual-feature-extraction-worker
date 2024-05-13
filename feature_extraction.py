@@ -16,15 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 def apply_model(batch, model, device):
-    frames, spectograms = batch["video"], batch["audio"]
+    frames = batch["video"]
     timestamps = batch["timestamp"].to(device)
     shots = batch["shot_boundaries"].to(device)
     # TODO: mask/disregard all zero frames/spectograms
     # (for the, now theoretical, case of only audio OR video existing)
     with torch.no_grad():  # Forward pass to get the features
-        audio_feat = model.audio_model(spectograms)
         visual_feat = model.video_model(frames)
-    result = torch.concat((timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1)
+    result = torch.concat((timestamps.unsqueeze(1), shots, visual_feat), 1)
     return result
 
 
@@ -40,6 +39,7 @@ def run(
     logger.info(f"Extracting features from: {feature_extraction_input.input_file_path}")
 
     # Step 1: set up GPU processing if available
+    # TODO: make this configurable?
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     logger.info(f"Device is: {device}")
 
@@ -75,8 +75,6 @@ def run(
         config_file=os.path.join(model_base_mount, model_config_file),
         device=device,
     )
-    # Switch model mode: in training mode, model layers behave differently!
-    model.eval()
 
     # Step 6: Apply model to data
     logger.info(f"Going to extract features for {dataset.__len__()} items. ")
