@@ -270,7 +270,7 @@ def obtain_input_file(s3_uri: str, dane_worker_id: str) -> VisXPFeatureExtractio
             activity_name="download",
             activity_description="Download VISXP_PREP data",
             start_time_unix=start_time,
-            processing_time_ms=(time() - start_time)*1000,
+            processing_time_ms=(time() - start_time) * 1000,
             parameters={},
             software_version=obtain_software_versions(dane_worker_id),
             input_data={"input_file_path": s3_uri},

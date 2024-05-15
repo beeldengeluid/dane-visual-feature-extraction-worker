@@ -20,7 +20,7 @@ def apply_model(batch, model, device):
     frames, spectograms = batch["video"], batch["audio"]
     timestamps = batch["timestamp"].to(device)
     shots = batch["shot_boundaries"].to(device)
-    # TODO: mask/disregard all zero frames/spectograms
+    # TODO: mask/disregard all zero frames/spectrograms
     # (for the, now theoretical, case of only audio OR video existing)
     with torch.no_grad():  # Forward pass to get the features
         audio_feat = model.audio_model(spectograms)
@@ -35,7 +35,7 @@ def run(
     model_checkpoint_file: str,
     model_config_file: str,
     output_file_path: str,
-    dane_worker_id: str
+    dane_worker_id: str,
 ) -> Optional[Provenance]:
     start_time = time()
 
@@ -64,7 +64,7 @@ def run(
         )  # change the input path to the parent dir
         logger.info(f"Changed input_file_path to: {input_file_path}")
 
-    # Step 4: Load spectograms + keyframes from file & preprocess
+    # Step 4: Load spectrograms + keyframes from file & preprocess
     dataset = VisXPData(
         datapath=Path(input_file_path),
         model_config_file=os.path.join(model_base_mount, model_config_file),
@@ -100,7 +100,7 @@ def run(
         activity_name="VisXP feature extraction",
         activity_description=("Extract features vectors in .pt file"),
         start_time_unix=start_time,
-        processing_time_ms=(time() - start_time)*1000,
+        processing_time_ms=(time() - start_time) * 1000,
         parameters={},
         software_version=obtain_software_versions(dane_worker_id),
         input_data={"input_file_path": input_file_path},

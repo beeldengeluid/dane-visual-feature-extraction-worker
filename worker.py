@@ -13,6 +13,8 @@ from io_util import (
     get_s3_output_file_uri,
 )
 from pika.exceptions import ChannelClosedByBroker  # type: ignore
+from time import time
+
 import main_data_processor
 
 
@@ -161,7 +163,8 @@ if __name__ == "__main__":
         # start the worker
         w = VisualFeatureExtractionWorker(cfg)
         try:
-            w.run()
+            start_time = time()
+            w.run(start_time=start_time)
         except ChannelClosedByBroker:
             """
             (406, 'PRECONDITION_FAILED - delivery acknowledgement on channel 1 timed out.

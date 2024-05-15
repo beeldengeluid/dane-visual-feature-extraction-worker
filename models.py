@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field, fields, is_dataclass
+from dataclasses import dataclass
 from dane.provenance import Provenance
 from enum import Enum
 from typing import Optional, TypedDict
@@ -18,11 +18,12 @@ class OutputType(Enum):
 
 # NOTE https://stackoverflow.com/questions/20670732/is-input-a-keyword-in-python
 
+
 def provenance_from_dict(input: dict) -> Optional[Provenance]:
     """Converts provenance from a dictionary into a Provenance object. Calls itself
     recursively to handle each part of the provenance object
     :param input - this should be the dict with the provenance on the first call
-    :returns the provenance as a Provenance object"""   
+    :returns the provenance as a Provenance object"""
     return Provenance(
         activity_name=input.get("activity_name", ""),
         activity_description=input.get("activity_description", ""),
@@ -32,7 +33,7 @@ def provenance_from_dict(input: dict) -> Optional[Provenance]:
         software_version=input.get("software_version", {}),
         input_data=input.get("input_data", {}),
         output_data=input.get("output_data", {}),
-        steps=[provenance_from_dict(step) for step in input.get("steps", [])]
+        steps=[provenance_from_dict(step) for step in input.get("steps", [])],
     )
 
 

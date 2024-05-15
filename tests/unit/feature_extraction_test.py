@@ -25,6 +25,7 @@ def test_extract_features():
         model_checkpoint_file="checkpoint.tar",
         model_config_file="model_config.yml",
         output_file_path=feature_file,
+        dane_worker_id="dummy-dane-worker-id",
     )
 
     features = torch.Tensor(np.load(feature_file))
