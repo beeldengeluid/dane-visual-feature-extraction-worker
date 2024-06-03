@@ -1,7 +1,6 @@
 import logging
-import os
 from typing import Tuple, Optional
-
+import os
 from dane.config import cfg
 from dane.s3_util import validate_s3_uri
 import feature_extraction
@@ -23,7 +22,6 @@ from models import (
     VisXPFeatureExtractionInput,
     OutputType,
 )
-from nn_models import download_model_from_s3
 from dane.provenance import (
     Provenance,
     obtain_software_versions,
@@ -37,7 +35,7 @@ DANE_WORKER_ID = "dane-visual-feature-extraction-worker"
 
 
 # triggered by running: python worker.py --run-test-file
-def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
+def run(input_file_path: str, model, device) -> Tuple[CallbackResponse, Optional[Provenance]]:
     # there must be an input file
     if not input_file_path:
         logger.error("input file empty")
@@ -52,8 +50,7 @@ def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
     top_level_provenance = generate_initial_provenance(
         name="VisXP feature extraction",
         description=(
-            "Based on keyframes and corresponing audio spectograms, "
-            "extract features by applying forward pass of a model"
+            "Based on keyframes, extract features by applying forward pass of a model"
         ),
         input_data={"input_file_path": input_file_path},
         parameters=dict(cfg.VISXP_EXTRACT),
@@ -86,7 +83,7 @@ def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
     generate_output_dirs(feature_extraction_input.source_id)
 
     # apply model to input & extract features
-    proc_result = extract_visual_features(feature_extraction_input)
+    proc_result = extract_visual_features(feature_extraction_input, model, device)
 
     if proc_result.provenance:
         provenance_chain.append(proc_result.provenance)
@@ -117,56 +114,21 @@ def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
     return validated_output, full_provenance_chain
 
 
-# makes sure the models are available, if not downloads them from S3
-def check_model_availability():
-    logger.info("Checking if the model and its config are available")
-    model_checkpoint_path = os.path.join(
-        cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT, cfg.VISXP_EXTRACT.MODEL_CHECKPOINT_FILE
-    )
+def extract_visual_features(
+    feature_extraction_input: VisXPFeatureExtractionInput,
+    model,
+    device,
+) -> VisXPFeatureExtractionOutput:
+    logger.info("Starting VisXP visual feature extraction")
     model_config_path = os.path.join(
         cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT, cfg.VISXP_EXTRACT.MODEL_CONFIG_FILE
     )
-    if os.path.exists(model_checkpoint_path) and os.path.exists(model_config_path):
-        logger.info("Models found, continuing")
-        return True
-
-    logger.info("Model not found, checking availability in S3")
-    if not all(
-        key in cfg.INPUT
-        for key in ["MODEL_CHECKPOINT_S3_URI", "MODEL_CONFIG_S3_URI", "S3_ENDPOINT_URL"]
-    ):
-        logger.error(
-            "Incomplete config for downloading models from S3, please configure: INPUT.S3_ENDPOINT_URL, INPUT.MODEL_CONFIG_S3_URI, INPUT.MODEL_CHECKPOINT_S3_URI"
-        )
-        return False
-
-    download_success = download_model_from_s3(
-        cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT,  # download models into this dir
-        cfg.INPUT.MODEL_CHECKPOINT_S3_URI,  # model checkpoint file is stored here
-        cfg.INPUT.MODEL_CONFIG_S3_URI,  # model config file is stored here
-        cfg.INPUT.S3_ENDPOINT_URL,  # the endpoint URL of the S3 host
-    )
-
-    if not download_success:
-        logger.error("Could not download models from S3")
-        return False
-    return True
-
-
-def extract_visual_features(
-    feature_extraction_input: VisXPFeatureExtractionInput,
-) -> VisXPFeatureExtractionOutput:
-    logger.info("Starting VisXP visual feature extraction")
-
-    # first check if the model and its config are available
-    if not check_model_availability():
-        return VisXPFeatureExtractionOutput(500, "Could not find model and its config")
 
     feature_extraction_provenance = feature_extraction.run(
-        feature_extraction_input,
-        model_base_mount=cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT,
-        model_checkpoint_file=cfg.VISXP_EXTRACT.MODEL_CHECKPOINT_FILE,
-        model_config_file=cfg.VISXP_EXTRACT.MODEL_CONFIG_FILE,
+        feature_extraction_input=feature_extraction_input,
+        model=model,
+        device=device,
+        model_config_path=model_config_path,
         output_file_path=get_output_file_path(
             feature_extraction_input.source_id, OutputType.FEATURES
         ),

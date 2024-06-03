@@ -3,11 +3,16 @@ from torch import nn
 from yacs.config import CfgNode as CN
 import logging
 from typing import Optional
+import os
 
 from dane.s3_util import validate_s3_uri, download_s3_uri
-
+from dane.config import cfg
 
 logger = logging.getLogger(__name__)
+
+
+class ModelNotFoundError(Exception):
+    pass
 
 
 class VisualNet(nn.Module):
@@ -237,6 +242,56 @@ class AVNet(nn.Module):
         x = self.lin2(x)
 
         return x
+
+
+def check_model_availability():
+    """Makes sure the model is available, if not download them from S3"""
+    logger.info("Checking if the model and its config are available")
+    model_checkpoint_path = os.path.join(
+        cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT, cfg.VISXP_EXTRACT.MODEL_CHECKPOINT_FILE
+    )
+    model_config_path = os.path.join(
+        cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT, cfg.VISXP_EXTRACT.MODEL_CONFIG_FILE
+    )
+    if os.path.exists(model_checkpoint_path) and os.path.exists(model_config_path):
+        logger.info("Models found, continuing")
+        return (model_checkpoint_path, model_config_path)
+
+    logger.info("Model not found, checking availability in S3")
+    if not all(
+        key in cfg.INPUT
+        for key in ["MODEL_CHECKPOINT_S3_URI", "MODEL_CONFIG_S3_URI", "S3_ENDPOINT_URL"]
+    ):
+        
+        raise ModelNotFoundError( "Incomplete config for downloading models from S3, please configure: INPUT.S3_ENDPOINT_URL, INPUT.MODEL_CONFIG_S3_URI, INPUT.MODEL_CHECKPOINT_S3_URI")
+
+    download_success = download_model_from_s3(
+        cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT,  # download models into this dir
+        cfg.INPUT.MODEL_CHECKPOINT_S3_URI,  # model checkpoint file is stored here
+        cfg.INPUT.MODEL_CONFIG_S3_URI,  # model config file is stored here
+        cfg.INPUT.S3_ENDPOINT_URL,  # the endpoint URL of the S3 host
+    )
+
+    if not download_success:
+        raise ModelNotFoundError("Could not download models from S3")
+    return (model_checkpoint_path, model_config_path)
+
+
+def init_model() -> tuple[nn.Module, torch.device]:
+    # first check if the model and its config are available
+    model_checkpoint_path, model_config_path = check_model_availability()
+    # Set up GPU processing if available
+    # TODO: make this configurable?
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    logger.info(f"Device is: {device}")
+
+    # Load model from file
+    model = load_model_from_file(
+        checkpoint_file=model_checkpoint_path,
+        config_file=model_config_path,
+        device=device,
+    )
+    return model, device
 
 
 def download_model_from_s3(

@@ -8,7 +8,6 @@ from typing import Optional
 from data_handling import VisXPData
 from io_util import untar_input_file
 from models import VisXPFeatureExtractionInput, Provenance
-from nn_models import load_model_from_file
 import numpy as np
 
 
@@ -35,20 +34,15 @@ def apply_model(batch, model, device):
 
 def run(
     feature_extraction_input: VisXPFeatureExtractionInput,
-    model_base_mount: str,
-    model_checkpoint_file: str,
-    model_config_file: str,
+    model: torch.nn.Module,
+    device: torch.device,
+    model_config_path: str,
     output_file_path: str,
     audio_too: bool = False,
 ) -> Optional[Provenance]:
     start_time = time()
 
     logger.info(f"Extracting features from: {feature_extraction_input.input_file_path}")
-
-    # Step 1: set up GPU processing if available
-    # TODO: make this configurable?
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    logger.info(f"Device is: {device}")
 
     # Step 2: verify the input file's existence
     input_file_path = feature_extraction_input.input_file_path
@@ -72,16 +66,9 @@ def run(
     # Step 4: Load spectrograms + keyframes from file & preprocess
     dataset = VisXPData(
         datapath=Path(input_file_path),
-        model_config_file=os.path.join(model_base_mount, model_config_file),
+        model_config_file=model_config_path,
         device=device,
         audio_too=audio_too,
-    )
-
-    # Step 5: Load model from file
-    model = load_model_from_file(
-        checkpoint_file=os.path.join(model_base_mount, model_checkpoint_file),
-        config_file=os.path.join(model_base_mount, model_config_file),
-        device=device,
     )
 
     # Step 6: Apply model to data
