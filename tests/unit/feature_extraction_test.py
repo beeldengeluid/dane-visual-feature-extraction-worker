@@ -42,6 +42,7 @@ def test_extract_features():
 
     os.remove(feature_file)
 
+
 @pytest.mark.legacy
 def test_extract_features_legacy():
     feature_file = get_output_file_path(UNIT_TEST_SOURCE_ID, OutputType.FEATURES)

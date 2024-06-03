@@ -4,7 +4,7 @@ from yacs.config import CfgNode as CN
 import logging
 from typing import Optional
 
-from dane.s3_util import S3Store, parse_s3_uri, validate_s3_uri, download_s3_uri
+from dane.s3_util import validate_s3_uri, download_s3_uri
 
 
 logger = logging.getLogger(__name__)

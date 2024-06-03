@@ -53,7 +53,7 @@ class VisXPData(Dataset):
         for p in datapath.glob(f"{SPECTROGRAM_INPUT_DIR}/*_{self.framerate}.npz"):
             self.paths[int(p.stem.split("_")[0])].update({"spec": p})
 
-    def set_config(self, model_config_file: str):       
+    def set_config(self, model_config_file: str):
         with open(model_config_file, "r") as f:
             cfg = CN.load_cfg(f).INPUT
         norm_v = eval(cfg.KEYFRAME.NORMALIZATION)
