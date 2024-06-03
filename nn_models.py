@@ -292,28 +292,33 @@ def load_model_from_file(checkpoint_file, config_file, device):
 
 
 def convert_avnet_to_visualnet(
-        av_path: str, av_config_path, v_path: str, v_config_path: str):
-    '''Load model checkpoint for AV model from file.
-       Obtain model parameters for Visualnet and store to file.
-       Convert model config accordingly (strip off some elements)'''
+    av_path: str, av_config_path, v_path: str, v_config_path: str
+):
+    """Load model checkpoint for AV model from file.
+    Obtain model parameters for Visualnet and store to file.
+    Convert model config accordingly (strip off some elements)"""
     loaded_model = load_model_from_file(av_path, av_config_path, "cpu")
     state_dict = loaded_model.video_model.state_dict()
     # fc: extra linear layer added on top of separate A/V models for AV-net
     # never used in forward pass though
     # and raises Exception when loading model from file
-    del state_dict['fc.weight']
-    del state_dict['fc.bias']
+    del state_dict["fc.weight"]
+    del state_dict["fc.bias"]
     torch.save(state_dict, v_path)
     logger.info("Saved visualnet checkpoint to file")
     with open(av_config_path, "r") as f:
         cfg = CN.load_cfg(f)
     if True:
-        cfg.MODEL = CN({
-            'TYPE': 'VisualNet',
-            'DOUBLE_CONVOLUTION': cfg.MODEL.DOUBLE_CONVOLUTION})
-        cfg.INPUT = CN({
-            'KEYFRAME': {
-                'DIMENSIONALITY': cfg.INPUT.KEYFRAME.DIMENSIONALITY,
-                'NORMALIZATION': cfg.INPUT.KEYFRAME.NORMALIZATION}})
-    with open(v_config_path, 'w') as f:
+        cfg.MODEL = CN(
+            {"TYPE": "VisualNet", "DOUBLE_CONVOLUTION": cfg.MODEL.DOUBLE_CONVOLUTION}
+        )
+        cfg.INPUT = CN(
+            {
+                "KEYFRAME": {
+                    "DIMENSIONALITY": cfg.INPUT.KEYFRAME.DIMENSIONALITY,
+                    "NORMALIZATION": cfg.INPUT.KEYFRAME.NORMALIZATION,
+                }
+            }
+        )
+    with open(v_config_path, "w") as f:
         f.write(cfg.dump())

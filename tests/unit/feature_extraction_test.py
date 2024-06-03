@@ -26,7 +26,7 @@ def test_extract_features():
         model_checkpoint_file="visualnet_checkpoint.tar",
         model_config_file="visualnet_config.yml",
         output_file_path=feature_file,
-        audio_too=False
+        audio_too=False,
     )
 
     features = torch.Tensor(np.load(feature_file))
@@ -59,7 +59,7 @@ def test_extract_features_legacy():
         model_checkpoint_file="checkpoint.tar",
         model_config_file="model_config.yml",
         output_file_path=feature_file,
-        audio_too=True
+        audio_too=True,
     )
 
     features = torch.Tensor(np.load(feature_file))

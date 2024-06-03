@@ -22,7 +22,7 @@ class VisXPData(Dataset):
         datapath: Path,
         model_config_file: str,
         device: torch.device,
-        audio_too=False
+        audio_too=False,
     ):
         if type(datapath) is not Path:
             datapath = Path(datapath)

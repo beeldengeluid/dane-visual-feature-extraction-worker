@@ -20,12 +20,13 @@ def apply_model(batch, model, device):
     timestamps = batch["timestamp"].to(device)
     shots = batch["shot_boundaries"].to(device)
     with torch.no_grad():  # Forward pass to get the features
-        if 'audio' in batch:
+        if "audio" in batch:
             spectrograms = batch["audio"]
             audio_feat = model.audio_model(spectrograms)
             visual_feat = model.video_model(frames)
             result = torch.concat(
-                (timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1)
+                (timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1
+            )
         else:
             visual_feat = model(frames)
             result = torch.concat((timestamps.unsqueeze(1), shots, visual_feat), 1)
@@ -73,7 +74,7 @@ def run(
         datapath=Path(input_file_path),
         model_config_file=os.path.join(model_base_mount, model_config_file),
         device=device,
-        audio_too=audio_too
+        audio_too=audio_too,
     )
 
     # Step 5: Load model from file

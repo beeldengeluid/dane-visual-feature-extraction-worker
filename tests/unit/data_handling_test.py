@@ -8,11 +8,10 @@ def test_batches():
         dataset = VisXPData(
             datapath="data/input-files/test_source_id",
             model_config_file=(
-                "model/model_config.yml" if audio_too else
-                "model/visualnet_config.yml"
+                "model/model_config.yml" if audio_too else "model/visualnet_config.yml"
             ),
             device=device,
-            audio_too=audio_too
+            audio_too=audio_too,
         )
         for i, item in enumerate(dataset.batches(1)):
             index = int(item["timestamp"][0])
