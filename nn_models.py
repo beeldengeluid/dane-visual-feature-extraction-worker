@@ -262,8 +262,10 @@ def check_model_availability():
         key in cfg.INPUT
         for key in ["MODEL_CHECKPOINT_S3_URI", "MODEL_CONFIG_S3_URI", "S3_ENDPOINT_URL"]
     ):
-        
-        raise ModelNotFoundError( "Incomplete config for downloading models from S3, please configure: INPUT.S3_ENDPOINT_URL, INPUT.MODEL_CONFIG_S3_URI, INPUT.MODEL_CHECKPOINT_S3_URI")
+
+        raise ModelNotFoundError(
+            "Incomplete config for downloading models from S3, please configure: INPUT.S3_ENDPOINT_URL, INPUT.MODEL_CONFIG_S3_URI, INPUT.MODEL_CHECKPOINT_S3_URI"
+        )
 
     download_success = download_model_from_s3(
         cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT,  # download models into this dir

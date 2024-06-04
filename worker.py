@@ -7,10 +7,7 @@ from dane.base_classes import base_worker
 from dane.config import cfg
 from dane.provenance import Provenance
 from models import CallbackResponse
-from nn_models import (
-    init_model,
-    ModelNotFoundError
-)
+from nn_models import init_model, ModelNotFoundError
 from io_util import (
     fetch_visxp_prep_s3_uri,
     source_id_from_s3_uri,
@@ -79,7 +76,9 @@ class VisualFeatureExtractionWorker(base_worker):
         s3_uri = fetch_visxp_prep_s3_uri(self.handler, doc)
 
         # now run the main process!
-        processing_result, full_provenance_chain = main_data_processor.run(s3_uri, self.model, self.device)
+        processing_result, full_provenance_chain = main_data_processor.run(
+            s3_uri, self.model, self.device
+        )
 
         # if results are fine, save something to the DANE index
         if processing_result.get("state", 500) == 200:

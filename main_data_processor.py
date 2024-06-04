@@ -35,7 +35,9 @@ DANE_WORKER_ID = "dane-visual-feature-extraction-worker"
 
 
 # triggered by running: python worker.py --run-test-file
-def run(input_file_path: str, model, device) -> Tuple[CallbackResponse, Optional[Provenance]]:
+def run(
+    input_file_path: str, model, device
+) -> Tuple[CallbackResponse, Optional[Provenance]]:
     # there must be an input file
     if not input_file_path:
         logger.error("input file empty")
