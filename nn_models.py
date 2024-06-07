@@ -332,16 +332,21 @@ def load_model_from_file(checkpoint_file, config_file, device):
             num_classes=cfg.MODEL.N_CLASSES,
             double_convolution=cfg.MODEL.DOUBLE_CONVOLUTION,
         )
-        model.load_state_dict(checkpoint["state_dict"])
+
     elif cfg.MODEL.TYPE == "VisualNet":
         model = VisualNet(double_convolution=cfg.MODEL.DOUBLE_CONVOLUTION)
-        model.load_state_dict(checkpoint)
     else:
         logger.error(
             f"Unspupported model type ({cfg.MODEL.TYPE}) specified"
             f" in model config {config_file}"
         )
-
+        raise ModelNotFoundError(
+            (
+                f"Unspupported model type ({cfg.MODEL.TYPE})"
+                f"specified in model config {config_file}"
+            )
+        )
+    model.load_state_dict(checkpoint["state_dict"])
     model.to(device)
     # Switch model mode: in training mode, model layers behave differently!
     model.eval()
@@ -361,8 +366,9 @@ def convert_avnet_to_visualnet(
     # and raises Exception when loading model from file
     del state_dict["fc.weight"]
     del state_dict["fc.bias"]
-    torch.save(state_dict, v_path)
+    torch.save({"state_dict": state_dict}, v_path)
     logger.info("Saved visualnet checkpoint to file")
+    print("Saved visualnet checkpoint to file")
     with open(av_config_path, "r") as f:
         cfg = CN.load_cfg(f)
     if True:
