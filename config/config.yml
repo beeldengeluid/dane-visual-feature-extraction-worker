@@ -13,26 +13,15 @@ RABBITMQ:
     RESPONSE_QUEUE: DANE-response-queue
     USER: guest # change this for production mode
     PASSWORD: guest # change this for production mode
-ELASTICSEARCH:
-    HOST:
-        - elasticsearch
-    PORT: 9200
-    USER: '' # change this for production mode
-    PASSWORD: '' # change this for production mode
-    SCHEME: http
-    INDEX: dane-index-k8s-asr
 FILE_SYSTEM:
     BASE_MOUNT: /data # data when running locally
     INPUT_DIR: input-files
     OUTPUT_DIR: output-files
-PATHS:
-    TEMP_FOLDER: /data/input-files
-    OUT_FOLDER: /data/output-files
 VISXP_EXTRACT:
     MODEL_BASE_MOUNT: /model
-    MODEL_CHECKPOINT_FILE: checkpoint.tar  # should be in MODEL_BASE_MOUNT
-    MODEL_CONFIG_FILE: model_config.yml  # should be in MODEL_BASE_MOUNT
-    TEST_INPUT_PATH: /data/input-files/testob/visxp_prep__testob.tar.gz
+    MODEL_CHECKPOINT_FILE: visualnet_checkpoint.tar  # should be in MODEL_BASE_MOUNT
+    MODEL_CONFIG_FILE: visualnet_config.yml  # should be in MODEL_BASE_MOUNT
+    TEST_INPUT_PATH: /data/input-files/test_source_id
 INPUT:
     S3_ENDPOINT_URL: https://s3-host
     MODEL_CHECKPOINT_S3_URI: s3://beng-daan-visxp/model/visualnet_checkpoint.tar
