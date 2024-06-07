@@ -25,7 +25,7 @@ jobs:
     - name: "pytest"
       run: |
         cp config/config.yml config.yml
-        poetry run pytest -k 'not test_extract_features and not test_batches'
+        poetry run pytest -k 'not test_batches' -m 'not legacy'
 
     - name: "flake8"
       run: "poetry run flake8"
