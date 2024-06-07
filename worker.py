@@ -77,7 +77,7 @@ class VisualFeatureExtractionWorker(base_worker):
 
         # now run the main process!
         processing_result, full_provenance_chain = main_data_processor.run(
-            s3_uri, self.model, self.device
+            input_file_path=s3_uri, model=self.model, device=self.device
         )
 
         # if results are fine, save something to the DANE index
