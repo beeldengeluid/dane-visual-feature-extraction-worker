@@ -1,9 +1,10 @@
-import os
+import os, shutil
 import torch
 
 import feature_extraction
 from io_util import get_output_file_path
 from models import OutputType, VisXPFeatureExtractionInput
+import nn_models
 import numpy as np
 import pytest
 
@@ -11,8 +12,26 @@ UNIT_TEST_SOURCE_ID = "test_source_id"
 UNIT_TEST_INPUT_PATH = f"./data/input-files/{UNIT_TEST_SOURCE_ID}"
 
 
-def test_extract_features():
+@pytest.fixture
+def load_model(request):
+    type = request.param
+    if type == "AVNet":
+        checkpoint_file = "model/checkpoint.tar"
+        config_file = "model/model_config.yml"
+    else:
+        checkpoint_file = "model/visualnet_checkpoint.tar"
+        config_file = "model/visualnet_config.yml"
+
+    model = nn_models.load_model_from_file(
+        checkpoint_file=checkpoint_file, config_file=config_file, device="cpu"
+    )
+    yield (model, config_file)
+
+
+@pytest.mark.parametrize("load_model", ["Visualnet"], indirect=True)
+def test_extract_features(load_model):
     feature_file = get_output_file_path(UNIT_TEST_SOURCE_ID, OutputType.FEATURES)
+    model, config_file = load_model
     print(f"FEATURE FILE: {feature_file}")
     feature_extraction.run(
         feature_extraction_input=VisXPFeatureExtractionInput(
@@ -22,9 +41,9 @@ def test_extract_features():
             UNIT_TEST_INPUT_PATH,
             None,  # no provenance needed in test
         ),
-        model_base_mount="model",
-        model_checkpoint_file="visualnet_checkpoint.tar",
-        model_config_file="visualnet_config.yml",
+        model=model,
+        device="cpu",
+        model_config_path=config_file,
         output_file_path=feature_file,
         audio_too=False,
     )
@@ -44,8 +63,10 @@ def test_extract_features():
 
 
 @pytest.mark.legacy
-def test_extract_features_legacy():
+@pytest.mark.parametrize("load_model", ["AVNet"], indirect=True)
+def test_extract_features_legacy(load_model):
     feature_file = get_output_file_path(UNIT_TEST_SOURCE_ID, OutputType.FEATURES)
+    model, config_file = load_model
     print(f"FEATURE FILE: {feature_file}")
     feature_extraction.run(
         feature_extraction_input=VisXPFeatureExtractionInput(
@@ -55,9 +76,9 @@ def test_extract_features_legacy():
             UNIT_TEST_INPUT_PATH,
             None,  # no provenance needed in test
         ),
-        model_base_mount="model",
-        model_checkpoint_file="checkpoint.tar",
-        model_config_file="model_config.yml",
+        model=model,
+        device="cpu",
+        model_config_path=config_file,
         output_file_path=feature_file,
         audio_too=True,
     )
