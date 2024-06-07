@@ -10,7 +10,7 @@ From the root of the repo, run
 DOCKER_BUILDKIT=1 docker build -t dane-visual-feature-extraction-worker . 
 ```
 Buildkit is optional, it may speed up building (see https://docs.docker.com/build/buildkit/)
-NB: building the image has occasionally led to mysterious connection errors, which we haven't been able to track down and solve (yet). 
+NB: building the image has occasionally led to mysterious connection errors, which we haven't been able to track down and solve (yet). Discarding the poetry.lock has been a way to circumvent these. 
 
 ### Config
 
@@ -20,6 +20,7 @@ are fine for testing, except:
 - `VISXP_EXTRACT.TEST_INPUT_PATH`: make sure to supply your `.tar.gz` archive (for instance obtained through S3)
 - `S3_ENDPOINT_URL`: ask your DANE admin for the endpoint URL
 - `S3_BUCKET`: ask your DANE admin for the bucket name
+NB: for S3 testing, you also need to supply valid S3 credentials, for instance through a s3-creds.env file. 
 
 Optionally, add a model specification to the appropriate dir: `model/checkpoint.tar` and `model/model_config.yml`. 
 
