@@ -1,10 +1,14 @@
+import json
 import logging
 import os
+from pathlib import Path
+from time import time
 from typing import Tuple, Optional
 
 from dane.config import cfg
 from dane.s3_util import validate_s3_uri
 import feature_extraction
+import io_util
 from io_util import (
     get_base_output_dir,
     get_output_file_path,
@@ -22,6 +26,7 @@ from models import (
     VisXPFeatureExtractionOutput,
     VisXPFeatureExtractionInput,
     OutputType,
+    provenance_from_dict,
 )
 from nn_models import download_model_from_s3
 from dane.provenance import (
@@ -49,21 +54,23 @@ def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
         return {"state": 500, "message": "Input & output dirs not ok"}, []
 
     # create the top-level provenance
+    start_time = time()
     top_level_provenance = generate_initial_provenance(
-        name="VisXP feature extraction",
+        name="Visual feature extraction",
         description=(
-            "Based on keyframes and corresponing audio spectograms, "
-            "extract features by applying forward pass of a model"
+            "Download keyframes and corresponding audio spectrograms, "
+            "extract features from them by applying forward pass of a model"
         ),
         input_data={"input_file_path": input_file_path},
         parameters=dict(cfg.VISXP_EXTRACT),
         software_version=obtain_software_versions(DANE_WORKER_ID),
+        start_time=start_time,
     )
     provenance_chain = []  # will contain the steps of the top-level provenance
 
     # S3 URI, local tar.gz or locally extracted tar.gz is allowed
     if validate_s3_uri(input_file_path):
-        feature_extraction_input = obtain_input_file(input_file_path)
+        feature_extraction_input = obtain_input_file(input_file_path, DANE_WORKER_ID)
     else:
         if input_file_path.find(".tar.gz") != -1:
             source_id = get_source_id_from_tar(input_file_path)
@@ -79,6 +86,7 @@ def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
         )
 
     # add the download provenance
+    logger.info(f"extraction provenance {feature_extraction_input.provenance}")
     if feature_extraction_input.provenance:
         provenance_chain.append(feature_extraction_input.provenance)
 
@@ -92,6 +100,12 @@ def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
         provenance_chain.append(proc_result.provenance)
 
     # as a last piece of output, generate the provenance.json before packaging and uploading
+    # get the provenance from the visXP preparation worker to include in the provenance.json
+    (
+        prep_provenance,
+        feature_extraction_input.input_file_path,
+    ) = retrieve_prep_provenance(feature_extraction_input.input_file_path)
+
     full_provenance_chain = stop_timer_and_persist_provenance_chain(
         provenance=top_level_provenance,
         output_data={
@@ -102,6 +116,7 @@ def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
         provenance_file_path=get_output_file_path(
             feature_extraction_input.source_id, OutputType.PROVENANCE
         ),
+        preceding_provenance_chain=prep_provenance,
     )
 
     # if all is ok, apply the I/O steps on the outputted features
@@ -115,6 +130,52 @@ def run(input_file_path: str) -> Tuple[CallbackResponse, Optional[Provenance]]:
     logger.info("Results after applying desired I/O")
     logger.info(validated_output)
     return validated_output, full_provenance_chain
+
+
+def retrieve_prep_provenance(input_file_path: str) -> Tuple[Provenance, str]:
+    """Retrieves the provenance from the VISxp preparation step, done by the previous worker,
+    from the downloaded input
+    :param input_file_path - the path to the input for this worker
+    :returns a provenance object with the provenance for the preparation step
+     and the input_file_path, which will have been modified if it was an archive"""
+    prep_provenance_object = None
+
+    # if input is an archive, extract it
+    if input_file_path.find(".tar.gz") != -1:
+        logger.info("Input is an archive, uncompressing it")
+        io_util.untar_input_file(input_file_path)  # extracts contents in same dir
+        input_file_path = str(
+            Path(input_file_path).parent
+        )  # change the input path to the parent dir
+        logger.info(f"Changed input_file_path to: {input_file_path}")
+
+    provenance_file_path = os.path.join(
+        input_file_path, "provenance", "provenance.json"
+    )
+
+    try:
+        logger.info(f"Opening prep provenance {provenance_file_path}")
+        with open(provenance_file_path, "r") as f:
+            prep_provenance = json.load(f)
+
+        if isinstance(prep_provenance, dict):
+            # convert dict to a Provenance object
+            prep_provenance_object = [provenance_from_dict(prep_provenance)]
+        elif isinstance(prep_provenance, list):
+            prep_provenance_object = [
+                provenance_from_dict(prep_provenance_item)
+                for prep_provenance_item in prep_provenance
+            ]
+        else:
+            raise ValueError(
+                f"Unexpected input provenance format {type(prep_provenance)}"
+            )
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to load provenance from {provenance_file_path}: {e}")
+    except Exception as e:
+        logger.error(f"Failed to convert provenance from {provenance_file_path}: {e}")
+
+    return prep_provenance_object, input_file_path
 
 
 # makes sure the models are available, if not downloads them from S3
@@ -170,6 +231,7 @@ def extract_visual_features(
         output_file_path=get_output_file_path(
             feature_extraction_input.source_id, OutputType.FEATURES
         ),
+        dane_worker_id=DANE_WORKER_ID,
     )
 
     if not feature_extraction_provenance:

@@ -21,6 +21,9 @@ RUN --mount=type=cache,target=/home/.cache/pypoetry/cache \
 # copy the rest into the source dir
 COPY ./ /src
 
+# create an objects dir in .git. This remains empty, only needs to be present for git rev to work
+RUN mkdir /src/.git/objects  
+
 # Write provenance info about software versions to file
 RUN echo "dane-visual-feature-extraction-worker;https://github.com/beeldengeluid/dane-visual-feature-extraction-worker/commit/$(git rev-parse HEAD)" >> /software_provenance.txt
 

@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "dane-visual-feature-extraction-worker"
 version = "0.1.0"
-description = "Apply feature extraction to (key)fames and audio spectograms to embed video timecodes"
+description = "Apply feature extraction to (key)frames and audio spectrograms to embed video timecodes"
 authors = ["Jaap Blom <jblom@beeldengeluid.nl>", "Teng Long <t.long@uva.nl>", "Sara Veldhoen <sveldhoen@beeldengeluid.nl>"]
 
 [tool.poetry.dependencies]
@@ -17,7 +17,7 @@ torchvision = "0.15.1"  # 0.15.2 yields installation issues (https://github.com/
 # name = "pytorch"
 # url = "https://download.pytorch.org/whl/cpu/"
 # priority = "supplemental"
-dane = "^0.4.2"
+dane = "^0.4.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.2.0"

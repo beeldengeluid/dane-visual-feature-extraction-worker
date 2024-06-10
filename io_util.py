@@ -8,10 +8,10 @@ from typing import Dict, List
 
 from dane import Document
 from dane.config import cfg
+from dane.provenance import obtain_software_versions, Provenance
 from dane.s3_util import S3Store, parse_s3_uri, validate_s3_uri
 from models import (
     OutputType,
-    Provenance,
     VisXPFeatureExtractionInput,
 )
 
@@ -244,7 +244,7 @@ def delete_input_file(input_file: str, source_id: str, actually_delete: bool) ->
     return True  # return True even if empty dirs were not removed
 
 
-def obtain_input_file(s3_uri: str) -> VisXPFeatureExtractionInput:
+def obtain_input_file(s3_uri: str, dane_worker_id: str) -> VisXPFeatureExtractionInput:
 
     if not validate_s3_uri(s3_uri):
         return VisXPFeatureExtractionInput(500, f"Invalid S3 URI: {s3_uri}")
@@ -270,9 +270,11 @@ def obtain_input_file(s3_uri: str) -> VisXPFeatureExtractionInput:
             activity_name="download",
             activity_description="Download VISXP_PREP data",
             start_time_unix=start_time,
-            processing_time_ms=time() - start_time,
-            input_data={},
-            output_data={"file_path": input_file_path},
+            processing_time_ms=(time() - start_time) * 1000,
+            parameters={},
+            software_version=obtain_software_versions(dane_worker_id),
+            input_data={"input_file_path": s3_uri},
+            output_data={"output_file_path": input_file_path},
         )
         return VisXPFeatureExtractionInput(
             200,
