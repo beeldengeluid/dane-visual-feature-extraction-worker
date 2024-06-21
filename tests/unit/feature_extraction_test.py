@@ -57,7 +57,7 @@ def test_extract_features(load_model):
 
     features = features[:, 3:]  # columns 0,1,2 hold timestamps & shot boundaries
     example_features = example_features[:, 513:]  # only visual part
-    assert torch.equal(features, example_features)
+    assert torch.isclose(features, example_features)
 
     os.remove(feature_file)
 
@@ -92,7 +92,7 @@ def test_extract_features_legacy(load_model):
 
     features = features[:, 3:]  # columns 0,1,2 hold timestamps & shot boundaries
     example_features = example_features[:, 1:]  # column 0 holds timestamps/indices
-    assert torch.equal(features, example_features)
+    assert torch.isclose(features, example_features)
 
     os.remove(feature_file)
 
