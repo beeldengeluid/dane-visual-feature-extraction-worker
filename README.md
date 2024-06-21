@@ -87,7 +87,7 @@ Run tests with:
 poetry run pytest 
 ```
 Optionally add `--pdb` for debugging.
-Also, optionally add `-m not legacy` to skip legacy tests (involving obsolete audio processing).
+Also, optionally add `-m "not legacy"` to skip legacy tests (involving obsolete audio processing).
 Some of the tests depend on model files that are private, which is why they are left out of the automated test pipeline in `.github/workflows/_test.yml`. These should be run locally when code under these tests is touched in a PR. 
 
 
