@@ -2,8 +2,6 @@
 
 echo "Starting DANE visual feature extraction worker"
 
-python3.10 worker.py "$@"
+poetry run python worker.py "$@"
 
-echo The worker crashed, tailing /dev/null for debugging
-
-tail -f /dev/null
+echo "The worker has stopped"

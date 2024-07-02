@@ -88,7 +88,7 @@ def load_audio(
         np
         .frombuffer(out, np.int16)
     )
-    # Get spectogram
+    # Get spectrogram
     spec = get_spec(
         wav, 
         from_sec, 

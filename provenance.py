@@ -25,8 +25,7 @@ def generate_full_provenance_chain(
     provenance = Provenance(
         activity_name="VisXP feature extraction",
         activity_description=(
-            "Based on keyframes and corresponing audio spectograms, "
-            "extract features by applying forward pass of a model"
+            "Based on keyframes, extract features by applying forward pass of a model"
         ),
         start_time_unix=start_time,
         processing_time_ms=time() - start_time,
