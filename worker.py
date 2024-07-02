@@ -58,11 +58,7 @@ class VisualFeatureExtractionWorker(base_worker):
                 "homepage": "https://github.com/beeldengeluid/dane-visual-feature-extraction-worker",
             }
 
-        try:
-            self.model, self.device = init_model()
-        except ModelNotFoundError as e:
-            logger.error(e)
-            sys.exit()
+        self.model, self.device = init_model()
 
     """----------------------------------INTERACTION WITH DANE SERVER ---------------------------------"""
 
