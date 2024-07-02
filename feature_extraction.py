@@ -109,7 +109,7 @@ def _save_features_to_file(features: torch.Tensor, output_file_path: str) -> boo
     except TypeError:
         # can't convert cuda:0 device type tensor to numpy.
         # Use Tensor.cpu() to copy the tensor to host memory first.
-        np.array(features.cpu())
+        features_np = np.array(features.cpu())
     try:
         parent_dir = str(Path(output_file_path).parent)
         logger.info(f"Checking if parent dir (source_id) exists: {parent_dir}")
