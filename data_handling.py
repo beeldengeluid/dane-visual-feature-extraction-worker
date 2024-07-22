@@ -8,6 +8,7 @@ from yacs.config import CfgNode as CN
 import logging
 from collections import defaultdict
 from typing import DefaultDict
+from nn_models import ModelNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,6 @@ class VisXPData(Dataset):
         datapath: Path,
         model_config_file: str,
         device: torch.device,
-        audio_too=False,
     ):
         if type(datapath) is not Path:
             datapath = Path(datapath)
@@ -33,13 +33,10 @@ class VisXPData(Dataset):
         self.timestamps = sorted(list(self.paths.keys()))
         self.device = device
         self.list_of_shots = self.ListOfShots(datapath)
-        if audio_too:
+        if self.audio_too:
             self.init_audio_too(datapath=datapath, model_config_file=model_config_file)
-        else:
-            self.audio_too = False
 
     def init_audio_too(self, datapath: Path, model_config_file: str):
-        self.audio_too = True
         with open(model_config_file, "r") as f:
             cfg = CN.load_cfg(f).INPUT
         norm_a = eval(cfg.SPECTROGRAM.NORMALIZATION)
@@ -55,9 +52,15 @@ class VisXPData(Dataset):
 
     def set_config(self, model_config_file: str):
         with open(model_config_file, "r") as f:
-            cfg = CN.load_cfg(f).INPUT
-        norm_v = eval(cfg.KEYFRAME.NORMALIZATION)
-        self.dim_v = eval(cfg.KEYFRAME.DIMENSIONALITY)
+            cfg = CN.load_cfg(f)
+        if cfg.MODEL.TYPE == 'AVNet':
+            self.audio_too = True
+        elif cfg.MODEL.TYPE == 'VisualNet':
+            self.audio_too = False
+        else:
+            raise ModelNotFoundError(f"Model type '{cfg.MODEL.TYPE}' not recognized")
+        norm_v = eval(cfg.INPUT.KEYFRAME.NORMALIZATION)
+        self.dim_v = eval(cfg.INPUT.KEYFRAME.DIMENSIONALITY)
         self.visual_transform = T.Compose(
             [
                 T.Normalize(norm_v[0], norm_v[1]),
