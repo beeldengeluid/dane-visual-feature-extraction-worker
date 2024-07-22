@@ -6,11 +6,11 @@ authors = ["Jaap Blom <jblom@beeldengeluid.nl>", "Teng Long <t.long@uva.nl>", "S
 
 [tool.poetry.dependencies]
 python = "^3.10"
-numpy = "^1.24.3"
+numpy = "^1.26.4"
 yacs = "^0.1.8"
 torch = "2.3.0"         # 2.0.1 yields installation issues
 torchvision = "0.18"  # 0.15.2 yields installation issues (https://github.com/python-poetry/poetry/issues/4231)
-dane = "^0.4.2"
+dane = "^0.4.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.2.0"
