@@ -8,7 +8,6 @@ from typing import Optional
 from data_handling import VisXPData
 from io_util import untar_input_file
 from models import VisXPFeatureExtractionInput, Provenance
-from nn_models import load_model_from_file
 import numpy as np
 
 
@@ -16,32 +15,33 @@ logger = logging.getLogger(__name__)
 
 
 def apply_model(batch, model, device):
-    frames, spectograms = batch["video"], batch["audio"]
+    frames = batch["video"]
     timestamps = batch["timestamp"].to(device)
     shots = batch["shot_boundaries"].to(device)
-    # TODO: mask/disregard all zero frames/spectograms
-    # (for the, now theoretical, case of only audio OR video existing)
     with torch.no_grad():  # Forward pass to get the features
-        audio_feat = model.audio_model(spectograms)
-        visual_feat = model.video_model(frames)
-    result = torch.concat((timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1)
+        if "audio" in batch:
+            spectrograms = batch["audio"]
+            audio_feat = model.audio_model(spectrograms)
+            visual_feat = model.video_model(frames)
+            result = torch.concat(
+                (timestamps.unsqueeze(1), shots, audio_feat, visual_feat), 1
+            )
+        else:
+            visual_feat = model(frames)
+            result = torch.concat((timestamps.unsqueeze(1), shots, visual_feat), 1)
     return result
 
 
 def run(
     feature_extraction_input: VisXPFeatureExtractionInput,
-    model_base_mount: str,
-    model_checkpoint_file: str,
-    model_config_file: str,
+    model: torch.nn.Module,
+    device: torch.device,
+    model_config_path: str,
     output_file_path: str,
 ) -> Optional[Provenance]:
     start_time = time()
 
     logger.info(f"Extracting features from: {feature_extraction_input.input_file_path}")
-
-    # Step 1: set up GPU processing if available
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    logger.info(f"Device is: {device}")
 
     # Step 2: verify the input file's existence
     input_file_path = feature_extraction_input.input_file_path
@@ -62,21 +62,12 @@ def run(
         )  # change the input path to the parent dir
         logger.info(f"Changed input_file_path to: {input_file_path}")
 
-    # Step 4: Load spectograms + keyframes from file & preprocess
+    # Step 4: Load spectrograms + keyframes from file & preprocess
     dataset = VisXPData(
         datapath=Path(input_file_path),
-        model_config_file=os.path.join(model_base_mount, model_config_file),
+        model_config_file=model_config_path,
         device=device,
     )
-
-    # Step 5: Load model from file
-    model = load_model_from_file(
-        checkpoint_file=os.path.join(model_base_mount, model_checkpoint_file),
-        config_file=os.path.join(model_base_mount, model_config_file),
-        device=device,
-    )
-    # Switch model mode: in training mode, model layers behave differently!
-    model.eval()
 
     # Step 6: Apply model to data
     logger.info(f"Going to extract features for {dataset.__len__()} items. ")
@@ -112,12 +103,18 @@ def run(
 def _save_features_to_file(features: torch.Tensor, output_file_path: str) -> bool:
     logger.info(f"Saving features to {output_file_path}")
     try:
+        features_np = np.array(features)
+    except TypeError:
+        # can't convert cuda:0 device type tensor to numpy.
+        # Use Tensor.cpu() to copy the tensor to host memory first.
+        features_np = np.array(features.cpu())
+    try:
         parent_dir = str(Path(output_file_path).parent)
         logger.info(f"Checking if parent dir (source_id) exists: {parent_dir}")
         if not os.path.isdir(parent_dir):
             logger.info("Parent dir, did not exist, creating it now")
             os.makedirs(parent_dir)
-        np.save(output_file_path, np.array(features))
+        np.save(output_file_path, features_np)
         return True
     except Exception:
         logger.exception("Failed to save features to file")

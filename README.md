@@ -12,6 +12,9 @@ DOCKER_BUILDKIT=1 docker build -t dane-visual-feature-extraction-worker .
 Buildkit is optional, it may speed up building (see https://docs.docker.com/build/buildkit/)
 NB: building the image has occasionally led to mysterious connection errors, which we haven't been able to track down and solve (yet). Discarding the poetry.lock has been a way to circumvent these. 
 
+The default Dockerfile is based on an image that allows GPU processing. A Dockerfile based on a regular Python base image is provided in `Dockerfile-noGPU`, but should not be essential. 
+Whether the processing actually uses GPU depends on the availability of GPU in the container. 
+
 ### Config
 
 The following parts are relevant for local testing (without connecting to DANE). All defaults
@@ -46,11 +49,13 @@ Check out the `docker-compose.yml` to learn about how the main process is starte
 version: '3'
 services:
   web:
-    image: dane-video-segmentation-worker:latest  # your locally built docker image
+    image: dane-visual-feature-extraction-worker:latest  # your locally built docker image
     volumes:
       - ./data:/data  # put input files in ./data and update VISXP_PREP.TEST_INPUT_FILE in ./config/config.yml
+      - ./model:/model # mount the model dir so the model files are not required to be downloaded each time
       - ./config:/root/.DANE  # ./config/config.yml is mounted to configure the main process
-    container_name: visxp
+
+    container_name: visxp_worker_2
     command: --run-test-file  # NOTE: comment this line to spin up th worker
     env_file:
       - s3-creds.env  # create this file with AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to allow boto3 to connect to your AWS S3 bucket (see OUTPUT.S3_* variables in config.yml)
@@ -71,7 +76,7 @@ There is no need to update the docker-compose.yml, but make sure to:
 ### Config 
 Copy `config/config.yml` to the root of the repo: `./config.yml` as your local config file. 
 In the (local) config file, replace all root directories (`/data` and `/model`) to actual directories on your local system (presumably `./data` and `./model`)
-Add a model specification to the appropriate dir: `model/checkpoint.tar` and `model/model_config.yml`
+Optionally, add a model specification to the appropriate dir: `model/checkpoint.tar` and `model/model_config.yml` (or specify the appropriate S3 URIs to have the worker download them).
 
 ### Installation 
 
@@ -85,5 +90,8 @@ Run tests with:
 ```sh
 poetry run pytest 
 ```
-Optionally add `--pdb` for debugging
+Optionally add `--pdb` for debugging.
+Also, optionally add `-m "not legacy"` to skip legacy tests (involving obsolete audio processing).
+Some of the tests depend on model files that are private, which is why they are left out of the automated test pipeline in `.github/workflows/_test.yml`. These should be run locally when code under these tests is touched in a PR. 
+
 

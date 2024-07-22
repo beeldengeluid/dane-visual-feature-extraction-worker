@@ -3,7 +3,7 @@ import wave
 import numpy as np
 
 from pydub import AudioSegment
-from spectrogram.get_spectogram import raw_audio_to_spectrogram
+from spectrogram.get_spectrogram import raw_audio_to_spectrogram
 
 # Convert MP4 to WAV
 audio = AudioSegment.from_file("data/train/class_1/test_video.mp4")

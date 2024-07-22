@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "dane-visual-feature-extraction-worker"
 version = "0.1.0"
-description = "Apply feature extraction to (key)fames and audio spectograms to embed video timecodes"
+description = "Apply feature extraction to (key)fames and audio spectrograms to embed video timecodes"
 authors = ["Jaap Blom <jblom@beeldengeluid.nl>", "Teng Long <t.long@uva.nl>", "Sara Veldhoen <sveldhoen@beeldengeluid.nl>"]
 
 [tool.poetry.dependencies]
@@ -38,6 +38,10 @@ testpaths = [
 ]
 addopts = [
   "--cov",
+]
+markers = [
+    "legacy: marks tests as legacy - includes audio processing (deselect with '-m \"not legacy\"')",
+    "serial",
 ]
 
 [tool.coverage.run]

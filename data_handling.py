@@ -8,12 +8,13 @@ from yacs.config import CfgNode as CN
 import logging
 from collections import defaultdict
 from typing import DefaultDict
+from nn_models import ModelNotFoundError
 
 logger = logging.getLogger(__name__)
 
 
 KEYFRAME_INPUT_DIR = "keyframes"
-SPECTOGRAM_INPUT_DIR = "spectograms"
+SPECTROGRAM_INPUT_DIR = "spectrograms"
 
 
 class VisXPData(Dataset):
@@ -22,41 +23,50 @@ class VisXPData(Dataset):
         datapath: Path,
         model_config_file: str,
         device: torch.device,
-        check_spec_dim=False,
     ):
         if type(datapath) is not Path:
             datapath = Path(datapath)
-
         self.set_config(model_config_file=model_config_file)
-
         self.paths: DefaultDict[int, dict] = defaultdict(dict)
         for p in datapath.glob(f"{KEYFRAME_INPUT_DIR}/*.jpg"):
             self.paths[int(p.stem)].update({"frame": p})
-        for p in datapath.glob(f"{SPECTOGRAM_INPUT_DIR}/*_{self.framerate}.npz"):
-            self.paths[int(p.stem.split("_")[0])].update({"spec": p})
         self.timestamps = sorted(list(self.paths.keys()))
         self.device = device
         self.list_of_shots = self.ListOfShots(datapath)
+        if self.audio_too:
+            self.init_audio_too(datapath=datapath, model_config_file=model_config_file)
+
+    def init_audio_too(self, datapath: Path, model_config_file: str):
+        with open(model_config_file, "r") as f:
+            cfg = CN.load_cfg(f).INPUT
+        norm_a = eval(cfg.SPECTROGRAM.NORMALIZATION)
+        self.dim_a = eval(cfg.SPECTROGRAM.DIMENSIONALITY)
+        self.audio_transform = T.Compose(
+            [
+                T.Normalize(norm_a[0], norm_a[1]),
+            ]
+        )
+        self.framerate = cfg.SPECTROGRAM.SAMPLERATE_HZ
+        for p in datapath.glob(f"{SPECTROGRAM_INPUT_DIR}/*_{self.framerate}.npz"):
+            self.paths[int(p.stem.split("_")[0])].update({"spec": p})
 
     def set_config(self, model_config_file: str):
         with open(model_config_file, "r") as f:
-            cfg = CN.load_cfg(f).INPUT
-            norm_a = eval(cfg.SPECTOGRAM.NORMALIZATION)
-            self.dim_a = eval(cfg.SPECTOGRAM.DIMENSIONALITY)
-            self.audio_transform = T.Compose(
-                [
-                    T.Normalize(norm_a[0], norm_a[1]),
-                ]
-            )
-            self.framerate = cfg.SPECTOGRAM.SAMPLERATE_HZ
-            norm_v = eval(cfg.KEYFRAME.NORMALIZATION)
-            self.dim_v = eval(cfg.KEYFRAME.DIMENSIONALITY)
-            self.visual_transform = T.Compose(
-                [
-                    T.Normalize(norm_v[0], norm_v[1]),
-                    T.Resize(self.dim_v, antialias=True),
-                ]
-            )
+            cfg = CN.load_cfg(f)
+        if cfg.MODEL.TYPE == "AVNet":
+            self.audio_too = True
+        elif cfg.MODEL.TYPE == "VisualNet":
+            self.audio_too = False
+        else:
+            raise ModelNotFoundError(f"Model type '{cfg.MODEL.TYPE}' not recognized")
+        norm_v = eval(cfg.INPUT.KEYFRAME.NORMALIZATION)
+        self.dim_v = eval(cfg.INPUT.KEYFRAME.DIMENSIONALITY)
+        self.visual_transform = T.Compose(
+            [
+                T.Normalize(norm_v[0], norm_v[1]),
+                T.Resize(self.dim_v, antialias=True),
+            ]
+        )
 
     def __len__(self):
         return len(self.timestamps)
@@ -65,7 +75,8 @@ class VisXPData(Dataset):
         item_dict = dict()
         timestamp = self.timestamps[index]
         item_dict["video"] = self.__get_keyframe__(timestamp)
-        item_dict["audio"] = self.__get_spec__(timestamp)
+        if self.audio_too:
+            item_dict["audio"] = self.__get_spec__(timestamp)
         item_dict["timestamp"] = timestamp
         item_dict["shot_boundaries"] = self.list_of_shots.find_shot_for_timestamp(
             timestamp=timestamp
@@ -81,7 +92,7 @@ class VisXPData(Dataset):
                 audio = self.audio_transform(audio)
         except KeyError:
             logger.info(
-                f"No spectogram exists for timestamp {timestamp}"
+                f"No spectrogram exists for timestamp {timestamp}"
                 f" at samplerate {self.framerate}."
             )
             audio = torch.zeros(size=self.dim_a)

@@ -3,11 +3,16 @@ from torch import nn
 from yacs.config import CfgNode as CN
 import logging
 from typing import Optional
+import os
 
-from dane.s3_util import S3Store, parse_s3_uri, validate_s3_uri
-
+from dane.s3_util import validate_s3_uri, download_s3_uri
+from dane.config import cfg
 
 logger = logging.getLogger(__name__)
+
+
+class ModelNotFoundError(Exception):
+    pass
 
 
 class VisualNet(nn.Module):
@@ -239,6 +244,58 @@ class AVNet(nn.Module):
         return x
 
 
+def check_model_availability():
+    """Makes sure the model is available, if not download them from S3"""
+    logger.info("Checking if the model and its config are available")
+    model_checkpoint_path = os.path.join(
+        cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT, cfg.VISXP_EXTRACT.MODEL_CHECKPOINT_FILE
+    )
+    model_config_path = os.path.join(
+        cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT, cfg.VISXP_EXTRACT.MODEL_CONFIG_FILE
+    )
+    if os.path.exists(model_checkpoint_path) and os.path.exists(model_config_path):
+        logger.info("Models found, continuing")
+        return (model_checkpoint_path, model_config_path)
+
+    logger.info("Model not found, checking availability in S3")
+    if not all(
+        key in cfg.INPUT
+        for key in ["MODEL_CHECKPOINT_S3_URI", "MODEL_CONFIG_S3_URI", "S3_ENDPOINT_URL"]
+    ):
+
+        raise ModelNotFoundError(
+            "Incomplete config for downloading models from S3, please configure: INPUT.S3_ENDPOINT_URL, INPUT.MODEL_CONFIG_S3_URI, INPUT.MODEL_CHECKPOINT_S3_URI"
+        )
+
+    download_success = download_model_from_s3(
+        cfg.VISXP_EXTRACT.MODEL_BASE_MOUNT,  # download models into this dir
+        cfg.INPUT.MODEL_CHECKPOINT_S3_URI,  # model checkpoint file is stored here
+        cfg.INPUT.MODEL_CONFIG_S3_URI,  # model config file is stored here
+        cfg.INPUT.S3_ENDPOINT_URL,  # the endpoint URL of the S3 host
+    )
+
+    if not download_success:
+        raise ModelNotFoundError("Could not download models from S3")
+    return (model_checkpoint_path, model_config_path)
+
+
+def init_model() -> tuple[nn.Module, torch.device]:
+    # first check if the model and its config are available
+    model_checkpoint_path, model_config_path = check_model_availability()
+    # Set up GPU processing if available
+    # TODO: make this configurable?
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    logger.info(f"Device is: {device}")
+
+    # Load model from file
+    model = load_model_from_file(
+        checkpoint_file=model_checkpoint_path,
+        config_file=model_config_path,
+        device=device,
+    )
+    return model, device
+
+
 def download_model_from_s3(
     model_base_mount: str,
     model_checkpoint_s3_uri: str,
@@ -253,9 +310,10 @@ def download_model_from_s3(
         return False
 
     for s3_uri in s3_uris:
-        s3 = S3Store(s3_endpoint_url)
-        bucket, object_name = parse_s3_uri(s3_uri)
-        success = s3.download_file(bucket, object_name, model_base_mount)
+        if not validate_s3_uri(s3_uri):
+            logger.error(f"S3 URI invalid: {s3_uri}")
+            return False
+        success = download_s3_uri(s3_uri=s3_uri, output_folder=model_base_mount)
         if not success:
             logger.error(f"Could not download {s3_uri} into {model_base_mount}")
             return False
@@ -266,11 +324,64 @@ def download_model_from_s3(
 
 def load_model_from_file(checkpoint_file, config_file, device):
     logger.info(f"Loading {checkpoint_file} and using model config: {config_file}")
+    checkpoint = torch.load(checkpoint_file, map_location=torch.device("cpu"))
     with open(config_file, "r") as f:
         cfg = CN.load_cfg(f)
-    model = globals()[cfg.MODEL.TYPE](
-        num_classes=cfg.MODEL.N_CLASSES, double_convolution=cfg.MODEL.DOUBLE_CONVOLUTION
-    )
-    checkpoint = torch.load(checkpoint_file, map_location=torch.device("cpu"))
+    if cfg.MODEL.TYPE == "AVNet":
+        model = AVNet(
+            num_classes=cfg.MODEL.N_CLASSES,
+            double_convolution=cfg.MODEL.DOUBLE_CONVOLUTION,
+        )
+
+    elif cfg.MODEL.TYPE == "VisualNet":
+        model = VisualNet(double_convolution=cfg.MODEL.DOUBLE_CONVOLUTION)
+    else:
+        logger.error(
+            f"Unspupported model type ({cfg.MODEL.TYPE}) specified"
+            f" in model config {config_file}"
+        )
+        raise ModelNotFoundError(
+            (
+                f"Unspupported model type ({cfg.MODEL.TYPE})"
+                f"specified in model config {config_file}"
+            )
+        )
     model.load_state_dict(checkpoint["state_dict"])
-    return model.to(device)
+    model.to(device)
+    # Switch model mode: in training mode, model layers behave differently!
+    model.eval()
+    return model
+
+
+def convert_avnet_to_visualnet(
+    av_path: str, av_config_path, v_path: str, v_config_path: str
+):
+    """Load model checkpoint for AV model from file.
+    Obtain model parameters for Visualnet and store to file.
+    Convert model config accordingly (strip off some elements)"""
+    loaded_model = load_model_from_file(av_path, av_config_path, "cpu")
+    state_dict = loaded_model.video_model.state_dict()
+    # fc: extra linear layer added on top of separate A/V models for AV-net
+    # never used in forward pass though
+    # and raises Exception when loading model from file
+    del state_dict["fc.weight"]
+    del state_dict["fc.bias"]
+    torch.save({"state_dict": state_dict}, v_path)
+    logger.info("Saved visualnet checkpoint to file")
+    print("Saved visualnet checkpoint to file")
+    with open(av_config_path, "r") as f:
+        cfg = CN.load_cfg(f)
+    if True:
+        cfg.MODEL = CN(
+            {"TYPE": "VisualNet", "DOUBLE_CONVOLUTION": cfg.MODEL.DOUBLE_CONVOLUTION}
+        )
+        cfg.INPUT = CN(
+            {
+                "KEYFRAME": {
+                    "DIMENSIONALITY": cfg.INPUT.KEYFRAME.DIMENSIONALITY,
+                    "NORMALIZATION": cfg.INPUT.KEYFRAME.NORMALIZATION,
+                }
+            }
+        )
+    with open(v_config_path, "w") as f:
+        f.write(cfg.dump())

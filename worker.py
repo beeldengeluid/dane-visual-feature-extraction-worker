@@ -7,6 +7,7 @@ from dane.base_classes import base_worker
 from dane.config import cfg
 from dane.provenance import Provenance
 from models import CallbackResponse
+from nn_models import init_model
 from io_util import (
     fetch_visxp_prep_s3_uri,
     source_id_from_s3_uri,
@@ -57,6 +58,8 @@ class VisualFeatureExtractionWorker(base_worker):
                 "homepage": "https://github.com/beeldengeluid/dane-visual-feature-extraction-worker",
             }
 
+        self.model, self.device = init_model()
+
     """----------------------------------INTERACTION WITH DANE SERVER ---------------------------------"""
 
     # DANE callback function, called whenever there is a job for this worker
@@ -69,7 +72,9 @@ class VisualFeatureExtractionWorker(base_worker):
         s3_uri = fetch_visxp_prep_s3_uri(self.handler, doc)
 
         # now run the main process!
-        processing_result, full_provenance_chain = main_data_processor.run(s3_uri)
+        processing_result, full_provenance_chain = main_data_processor.run(
+            input_file_path=s3_uri, model=self.model, device=self.device
+        )
 
         # if results are fine, save something to the DANE index
         if processing_result.get("state", 500) == 200:
@@ -140,8 +145,12 @@ if __name__ == "__main__":
     if args.run_test_file != "n":
         logger.info("Running feature extraction with VISXP_EXTRACT.TEST_INPUT_PATH ")
         if cfg.VISXP_EXTRACT and cfg.VISXP_EXTRACT.TEST_INPUT_PATH:
+            model, device = init_model()
+
             processing_result, full_provenance_chain = main_data_processor.run(
-                cfg.VISXP_EXTRACT.TEST_INPUT_PATH
+                cfg.VISXP_EXTRACT.TEST_INPUT_PATH,
+                model=model,
+                device=device,
             )
             logger.info("Results after applying desired I/O")
             logger.info(processing_result)
