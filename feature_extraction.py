@@ -37,8 +37,7 @@ def run(
     model: torch.nn.Module,
     device: torch.device,
     model_config_path: str,
-    output_file_path: str,
-    audio_too: bool = False,
+    output_file_path: str
 ) -> Optional[Provenance]:
     start_time = time()
 
@@ -67,8 +66,7 @@ def run(
     dataset = VisXPData(
         datapath=Path(input_file_path),
         model_config_file=model_config_path,
-        device=device,
-        audio_too=audio_too,
+        device=device
     )
 
     # Step 6: Apply model to data
