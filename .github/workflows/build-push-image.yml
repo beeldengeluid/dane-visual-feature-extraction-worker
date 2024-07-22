@@ -1,0 +1,16 @@
+name: Build & Push
+
+on:
+  push:
+    branches:
+    - main
+  workflow_dispatch:
+
+jobs:
+  build-push-image:
+    uses: beeldengeluid/gha-workflows/.github/workflows/build-push-image.yml@b993638b2a2ca69c470a23fd2dda59b907864c16
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
