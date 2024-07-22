@@ -45,7 +45,6 @@ def test_extract_features(load_model):
         device="cpu",
         model_config_path=config_file,
         output_file_path=feature_file,
-        audio_too=False,
     )
 
     features = torch.Tensor(np.load(feature_file))
@@ -80,7 +79,6 @@ def test_extract_features_legacy(load_model):
         device="cpu",
         model_config_path=config_file,
         output_file_path=feature_file,
-        audio_too=True,
     )
 
     features = torch.Tensor(np.load(feature_file))
