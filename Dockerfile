@@ -1,4 +1,7 @@
-FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
+#FROM pytorch/pytorch:2.3.1-cuda11.8-cudnn8-runtime
+FROM pytorch/pytorch:2.3.0-cuda11.8-cudnn8-runtime
+
+#FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
 
 # Create dirs for:
 # - Injecting config.yml: /root/.DANE
@@ -6,22 +9,10 @@ FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
 # - Storing the source code: /src
 RUN mkdir /root/.DANE /data /src /model
 
-RUN apt-get update && \
-    apt-get install -y python3-pip python3-dev python-is-python3 && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN pip install poetry==1.8.2
-
-ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    POETRY_VIRTUALENVS_CREATE=1 
-
 WORKDIR /src    
 # copy the pyproject file and install all the dependencies first
-COPY ./pyproject.toml poetry.lock /src/
-RUN --mount=type=cache,target=/home/.cache/pypoetry/cache \
-    --mount=type=cache,target=/home/.cache/pypoetry/artifacts \
-    poetry install --only main --no-interaction --no-ansi
+COPY ./requirements.txt /src/
+RUN pip install -r requirements.txt
 
 # copy the rest into the source dir
 COPY ./ /src

@@ -1,7 +1,7 @@
 version: '3'
 services:
   web:
-    image: dane-visual-feature-extraction-worker:latest
+    image: dane-visual-feature-extraction-worker:pytorchbase
     volumes:
       - ./data:/data
       - ./model:/model
