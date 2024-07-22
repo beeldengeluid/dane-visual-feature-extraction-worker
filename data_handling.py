@@ -53,9 +53,9 @@ class VisXPData(Dataset):
     def set_config(self, model_config_file: str):
         with open(model_config_file, "r") as f:
             cfg = CN.load_cfg(f)
-        if cfg.MODEL.TYPE == 'AVNet':
+        if cfg.MODEL.TYPE == "AVNet":
             self.audio_too = True
-        elif cfg.MODEL.TYPE == 'VisualNet':
+        elif cfg.MODEL.TYPE == "VisualNet":
             self.audio_too = False
         else:
             raise ModelNotFoundError(f"Model type '{cfg.MODEL.TYPE}' not recognized")

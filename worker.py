@@ -7,7 +7,7 @@ from dane.base_classes import base_worker
 from dane.config import cfg
 from dane.provenance import Provenance
 from models import CallbackResponse
-from nn_models import init_model, ModelNotFoundError
+from nn_models import init_model
 from io_util import (
     fetch_visxp_prep_s3_uri,
     source_id_from_s3_uri,
