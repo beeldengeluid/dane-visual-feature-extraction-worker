@@ -38,8 +38,10 @@ testpaths = [
 ]
 addopts = [
   "--cov",
+  "-m not data_dependent and not legacy",
 ]
 markers = [
+    "data_dependent: depends on data",
     "legacy: marks tests as legacy - includes audio processing (deselect with '-m \"not legacy\"')",
     "serial",
 ]

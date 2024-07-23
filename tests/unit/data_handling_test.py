@@ -3,6 +3,7 @@ import torch
 import pytest
 
 
+@pytest.mark.data_dependent
 @pytest.mark.parametrize("audio_too", [True, False])
 def test_batches(audio_too):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
