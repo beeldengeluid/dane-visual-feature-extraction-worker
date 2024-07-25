@@ -10,13 +10,6 @@ numpy = "^1.24.3"
 yacs = "^0.1.8"
 torch = "2.0.0"         # 2.0.1 yields installation issues
 torchvision = "0.15.1"  # 0.15.2 yields installation issues (https://github.com/python-poetry/poetry/issues/4231)
-# torch = { version = "=2.0.1+cpu", source = "pytorch" } 
-# torchvision = "0.15.2"  
-
-# [[tool.poetry.source]] # To be able to install the newest version of Pytorch with poetry, use wheel 
-# name = "pytorch"
-# url = "https://download.pytorch.org/whl/cpu/"
-# priority = "supplemental"
 dane = "^0.4.2"
 
 [tool.poetry.dev-dependencies]
