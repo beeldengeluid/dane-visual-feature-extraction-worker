@@ -28,6 +28,7 @@ def load_model(request):
     yield (model, config_file)
 
 
+@pytest.mark.data_dependent
 @pytest.mark.parametrize("load_model", ["Visualnet"], indirect=True)
 def test_extract_features(load_model):
     feature_file = get_output_file_path(UNIT_TEST_SOURCE_ID, OutputType.FEATURES)
@@ -62,6 +63,7 @@ def test_extract_features(load_model):
 
 
 @pytest.mark.legacy
+@pytest.mark.data_dependent
 @pytest.mark.parametrize("load_model", ["AVNet"], indirect=True)
 def test_extract_features_legacy(load_model):
     feature_file = get_output_file_path(UNIT_TEST_SOURCE_ID, OutputType.FEATURES)
