@@ -1,4 +1,4 @@
-FROM docker.io/python:3.10@sha256:3c3747ca270261365165f61ca511801918d368863d4945e17efd70836fe51c21 AS req
+FROM docker.io/python:3.10@sha256:428430918ab72109921ef55d5f8bdd3a02a90734fd79ee920146cf385a13c110 AS req
 
 RUN python3 -m pip install pipx && \
   python3 -m pipx ensurepath
@@ -11,7 +11,7 @@ COPY ./poetry.lock ./poetry.lock
 COPY ./pyproject.toml ./pyproject.toml
 RUN pipx run poetry export --format requirements.txt --output requirements.txt
 
-FROM docker.io/python:3.10@sha256:3c3747ca270261365165f61ca511801918d368863d4945e17efd70836fe51c21
+FROM docker.io/python:3.10@sha256:428430918ab72109921ef55d5f8bdd3a02a90734fd79ee920146cf385a13c110
 
 # Create dirs for:
 # - Injecting config.yml: /root/.DANE
