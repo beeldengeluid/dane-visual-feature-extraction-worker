@@ -7,13 +7,11 @@ Apply VisXP models trained for feature extraction from keyframes and audio spect
 
 From the root of the repo, run 
 ```
-DOCKER_BUILDKIT=1 docker build -t dane-visual-feature-extraction-worker . 
+docker build -t dane-visual-feature-extraction-worker . 
 ```
-Buildkit is optional, it may speed up building (see https://docs.docker.com/build/buildkit/)
 NB: building the image has occasionally led to mysterious connection errors, which we haven't been able to track down and solve (yet). Discarding the poetry.lock has been a way to circumvent these. 
 
-The default Dockerfile is based on an image that allows GPU processing. A Dockerfile based on a regular Python base image is provided in `Dockerfile-noGPU`, but should not be essential. 
-Whether the processing actually uses GPU depends on the availability of GPU in the container. 
+The Dockerfile support both CPU and GPU processing. Whether the processing actually uses GPU depends on the availability of GPU in the container. 
 
 ### Config
 
