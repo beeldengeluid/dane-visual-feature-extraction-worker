@@ -87,7 +87,9 @@ def run(
 
     return Provenance(
         activity_name="VisXP feature extraction",
-        activity_description=("Extract features vectors from keyframe images and store them in a .npy file"),
+        activity_description=(
+            "Extract features vectors from keyframe images and store them in a .npy file"
+        ),
         start_time_unix=start_time,
         processing_time_ms=time() - start_time,
         input_data={"input_file_path": input_file_path},
