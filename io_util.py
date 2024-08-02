@@ -132,7 +132,7 @@ def source_id_from_s3_uri(s3_uri: str) -> str:
         fn = fn.replace(".tar.gz", "")
         source_id = "__".join(fn.split("__")[1:])  # remove the "visxp_prep__" bit
     else:
-        source_id = s3_uri.split("/")[-2]
+        source_id = s3_uri.split("/")[-3]
     return source_id
 
 
