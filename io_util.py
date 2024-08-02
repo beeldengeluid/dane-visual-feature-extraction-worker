@@ -15,7 +15,6 @@ from models import (
     VisXPFeatureExtractionInput,
 )
 
-
 logger = logging.getLogger(__name__)
 DANE_VISXP_PREP_TASK_KEY = "VISXP_PREP"
 OUTPUT_FILE_BASE_NAME = "visxp_features"
@@ -124,12 +123,16 @@ def get_source_id_from_tar(input_path: str) -> str:
 
 # e.g. s3://<bucket>/assets/<source_id>/visxp_prep__<source_id>.tar.gz
 # s3://your-bucket/assets/2101608170158176431__NOS_JOURNAAL_-WON01513227/visxp_prep__2101608170158176431__NOS_JOURNAAL_-WON01513227.tar.gz
+# or (untarred): s3://<bucket>/assets/<source_id>
 def source_id_from_s3_uri(s3_uri: str) -> str:
     fn = os.path.basename(
         s3_uri
     )  # e.g. visxp_prep__2101608170158176431__NOS_JOURNAAL_-WON01513227.tar.gz
-    fn = fn.replace(".tar.gz", "")
-    source_id = "__".join(fn.split("__")[1:])  # remove the "visxp_prep__" bit
+    if "tar.gz" in fn:
+        fn = fn.replace(".tar.gz", "")
+        source_id = "__".join(fn.split("__")[1:])  # remove the "visxp_prep__" bit
+    else:
+        source_id = s3_uri.split("/")[-2]
     return source_id
 
 
@@ -179,23 +182,26 @@ def _validate_transfer_config() -> bool:
 
 
 # compresses all desired output dirs into a single tar and uploads it to S3
-def transfer_output(source_id: str) -> bool:
+def transfer_output(source_id: str, as_tar: bool = True) -> bool:
     output_dir = get_base_output_dir(source_id)
     logger.info(f"Transferring {output_dir} to S3 (asset={source_id})")
     if not _validate_transfer_config():
         return False
-
     s3 = S3Store(cfg.OUTPUT.S3_ENDPOINT_URL)
     file_list = [os.path.join(output_dir, ot.value) for ot in S3_OUTPUT_TYPES]
-    tar_file = get_archive_file_path(source_id)
+    if as_tar:
+        tar_file = get_archive_file_path(source_id=source_id)
+    else:
+        tar_file = ""
+    path_elements = [cfg.OUTPUT.S3_FOLDER_IN_BUCKET, source_id]
+    if not as_tar:
+        path_elements.append(OUTPUT_FILE_BASE_NAME)
 
     success = s3.transfer_to_s3(
-        cfg.OUTPUT.S3_BUCKET,
-        os.path.join(
-            cfg.OUTPUT.S3_FOLDER_IN_BUCKET, source_id
-        ),  # assets/<program ID>__<carrier ID>
-        file_list,  # this list of subdirs will be compressed into the tar below
-        tar_file,  # this file will be uploaded
+        bucket=cfg.OUTPUT.S3_BUCKET,
+        prefix=os.path.join(*path_elements),  # assets/<program ID>__<carrier ID>
+        file_list=file_list,  # this list of files to be uploaded
+        tar_archive_path=tar_file,  # compressed in this archive name, if as_tar
     )
     if not success:
         logger.error(f"Failed to upload: {tar_file}")
@@ -245,24 +251,23 @@ def delete_input_file(input_file: str, source_id: str, actually_delete: bool) ->
 
 
 def obtain_input_file(s3_uri: str) -> VisXPFeatureExtractionInput:
-
     if not validate_s3_uri(s3_uri):
         return VisXPFeatureExtractionInput(500, f"Invalid S3 URI: {s3_uri}")
 
     source_id = source_id_from_s3_uri(s3_uri)
     start_time = time()
-    output_folder = get_base_input_dir(source_id)
+    input_folder = get_base_input_dir(source_id)
 
     # TODO download the content into get_download_dir()
     s3 = S3Store(cfg.OUTPUT.S3_ENDPOINT_URL)
     bucket, object_name = parse_s3_uri(s3_uri)
     logger.info(f"OBJECT NAME: {object_name}")
     input_file_path = os.path.join(
-        get_download_dir(),
-        source_id,
+        input_folder,
         os.path.basename(object_name),  # i.e. visxp_prep__<source_id>.tar.gz
     )
-    success = s3.download_file(bucket, object_name, output_folder)
+    success = s3.download_file(bucket, object_name, input_folder)
+
     if success:
         # TODO uncompress the visxp_prep.tar.gz
 
