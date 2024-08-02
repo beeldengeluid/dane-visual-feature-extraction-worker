@@ -262,13 +262,10 @@ def obtain_input_file(s3_uri: str) -> VisXPFeatureExtractionInput:
     s3 = S3Store(cfg.OUTPUT.S3_ENDPOINT_URL)
     bucket, object_name = parse_s3_uri(s3_uri)
     logger.info(f"OBJECT NAME: {object_name}")
-    input_file_path = os.path.join(
-        input_folder,
-        os.path.basename(object_name),  # i.e. visxp_prep__<source_id>.tar.gz
-    )
-    success = s3.download_file(bucket, object_name, input_folder)
 
-    if success:
+    download_result = s3.download_file(bucket, object_name, input_folder)
+
+    if download_result.success:
         # TODO uncompress the visxp_prep.tar.gz
 
         provenance = Provenance(
@@ -277,13 +274,13 @@ def obtain_input_file(s3_uri: str) -> VisXPFeatureExtractionInput:
             start_time_unix=start_time,
             processing_time_ms=time() - start_time,
             input_data={},
-            output_data={"file_path": input_file_path},
+            output_data={"file_path": download_result.file_path},
         )
         return VisXPFeatureExtractionInput(
             200,
             f"Failed to download: {s3_uri}",
             source_id_from_s3_uri(s3_uri),  # source_id
-            input_file_path,  # locally downloaded .tar.gz
+            download_result.file_path,  # locally downloaded .tar.gz
             provenance,
         )
     logger.error("Failed to download VISXP_PREP data from S3")
