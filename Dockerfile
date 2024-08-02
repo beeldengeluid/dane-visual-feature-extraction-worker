@@ -9,7 +9,7 @@ RUN pipx install poetry==1.7.1 && \
 
 COPY ./poetry.lock ./poetry.lock
 COPY ./pyproject.toml ./pyproject.toml
-RUN pipx run poetry export --without-hashes --format requirements.txt --output requirements.txt
+RUN pipx run poetry export --without-hashes --format requirements.txt --output requirements.txt --without git
 RUN cat requirements.txt | grep 'torch' > torch_requirements.txt
 RUN cat requirements.txt | grep -v 'torch' > notorch_requirements.txt
 
@@ -32,7 +32,7 @@ COPY --from=req ./notorch_requirements.txt notorch_requirements.txt
 
 RUN pip install --no-cache-dir -r torch_requirements.txt
 RUN pip install --no-cache-dir -r notorch_requirements.txt
-
+RUN pip install git+https://github.com/CLARIAH/DANE.git@5ab71c4898effbbbd1a969a570e59958fe39b23f
 COPY ./ /src
 
 # Write provenance info about software versions to file
