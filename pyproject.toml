@@ -6,7 +6,7 @@ authors = ["Jaap Blom <jblom@beeldengeluid.nl>", "Teng Long <t.long@uva.nl>", "S
 # package-mode = false 
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "~3.11"
 numpy = "^1.24.3"
 yacs = "^0.1.8"
 torch = "2.0.0"         # 2.0.1 yields installation issues
