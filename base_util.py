@@ -116,7 +116,7 @@ def validate_config(config: CfgNode, validate_file_paths: bool = True) -> bool:
             assert check_setting(
                 config.OUTPUT.S3_FOLDER_IN_BUCKET, str
             ), "OUTPUT.S3_FOLDER_IN_BUCKET"
-
+        assert check_setting(config.OUTPUT.TAR_OUTPUT, bool), "OUTPUT.TAR_OUTPUT"
         assert __check_dane_dependencies(config.DANE_DEPENDENCIES), "DANE_DEPENDENCIES"
 
         # validate file paths (not while unit testing)
