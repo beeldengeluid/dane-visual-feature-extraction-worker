@@ -110,6 +110,7 @@ def run(
         cfg.INPUT.DELETE_ON_COMPLETION,
         cfg.OUTPUT.DELETE_ON_COMPLETION,
         cfg.OUTPUT.TRANSFER_ON_COMPLETION,
+        cfg.OUTPUT.TAR_OUTPUT,
     )
     logger.info("Results after applying desired I/O")
     logger.info(validated_output)
@@ -154,6 +155,7 @@ def apply_desired_io_on_output(
     delete_input_on_completion: bool,
     delete_output_on_completetion: bool,
     transfer_output_on_completion: bool,
+    tar_before_transfer: bool,
 ) -> CallbackResponse:
     # step 2: raise exception on failure
     if proc_result.state != 200:
@@ -168,7 +170,7 @@ def apply_desired_io_on_output(
     # step 4: transfer the output to S3 (if configured so)
     transfer_success = True
     if transfer_output_on_completion:
-        transfer_success = transfer_output(source_id)
+        transfer_success = transfer_output(source_id, as_tar=tar_before_transfer)
 
     # failure of transfer, impedes the workflow, so return error
     if not transfer_success:

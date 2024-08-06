@@ -18,7 +18,7 @@ The Dockerfile support both CPU and GPU processing. Whether the processing actua
 The following parts are relevant for local testing (without connecting to DANE). All defaults
 are fine for testing, except:
 
-- `VISXP_EXTRACT.TEST_INPUT_PATH`: make sure to supply your `.tar.gz` archive (for instance obtained through S3)
+- `VISXP_EXTRACT.TEST_INPUT_PATH`: make sure to supply your input (a `.tar.gz` archive or a directory with VISXP_PREP output, for instance obtained through S3) or a S3 location right away
 - `S3_ENDPOINT_URL`: ask your DANE admin for the endpoint URL
 - `S3_BUCKET`: ask your DANE admin for the bucket name
 NB: for S3 testing, you also need to supply valid S3 credentials, for instance through a s3-creds.env file. 
